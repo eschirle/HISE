@@ -4,7 +4,11 @@ cd ..
 
 # Parse command-line arguments
 SKIP_TESTS_AND_EXPORT=false
-BUILD_CONFIG="${1:-Minimal Build}"
+BUILD_CONFIG="${1:-CI}"
+
+# CI
+# Minimal Build
+# Release
 
 for arg in "$@"; do
   case $arg in
@@ -14,6 +18,10 @@ for arg in "$@"; do
       ;;
   esac
 done
+
+echo "Starting CI build process..."
+echo "Skip tests and export: $SKIP_TESTS_AND_EXPORT"
+echo "Building with configuration: $BUILD_CONFIG"
 
 # This is the project folder for the Standalone app
 standalone_folder="projects/standalone"
