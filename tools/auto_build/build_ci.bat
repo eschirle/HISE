@@ -78,8 +78,7 @@ if defined MSBUILD_PATH (
     for /f "usebackq tokens=*" %%i in (`vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath`) do set MSBUILD_EXE=%%i\MSBuild\Current\Bin\MsBuild.exe
 )
 
-!MSBUILD_EXE! %standalone_project% /t:Build /p:Configuration="%BUILD_CONFIG%";Platform=x64 /v:m
-::"C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MsBuild.exe" %standalone_project% /t:Build /p:Configuration="%BUILD_CONFIG%";Platform=x64 /v:m
+!MSBUILD_EXE! %standalone_project% /t:Build /p:Configuration=%BUILD_CONFIG%;Platform=x64 /v:m
 
 if %errorlevel% NEQ 0 (
 	echo ========================================================================
