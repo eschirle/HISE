@@ -4,6 +4,7 @@ cd ..
 
 # Parse command-line arguments
 SKIP_TESTS_AND_EXPORT=false
+BUILD_CONFIG="${1:-Minimal Build}"
 
 for arg in "$@"; do
   case $arg in
@@ -23,7 +24,7 @@ chmod +x "JUCE/projucer/Projucer.app/Contents/MacOS/Projucer"
 
 echo "Compiling Standalone App..."
 
-set -o pipefail && xcodebuild -project "$standalone_folder/Builds/MacOSX/HISE Standalone.xcodeproj" -configuration "CI" | ./tools/Projucer/xcbeautify --renderer github-actions
+set -o pipefail && xcodebuild -project "$standalone_folder/Builds/MacOSX/HISE Standalone.xcodeproj" -configuration "$BUILD_CONFIG" | ./tools/Projucer/xcbeautify --renderer github-actions
 
 #xcodebuild  | xcpretty || exit 1
 
