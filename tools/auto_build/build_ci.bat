@@ -74,7 +74,8 @@ if defined MSBUILD_PATH (
 )
 echo Using MSBuild at: %MSBUILD_EXE%
 
-"!MSBUILD_EXE!" %standalone_project% /t:Build /p:Configuration=%BUILD_CONFIG%;Platform=x64;PlatformToolset=v143 /v:m
+REM "!MSBUILD_EXE!" %standalone_project% /t:Build /p:Configuration=%BUILD_CONFIG%;Platform=x64;PlatformToolset=v143 /v:m
+"!MSBUILD_EXE!" %standalone_project% /t:Build /p:Configuration=%BUILD_CONFIG%;Platform=x64 /v:m
 
 if %errorlevel% NEQ 0 (
 	echo ========================================================================
