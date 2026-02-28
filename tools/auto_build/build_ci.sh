@@ -2,6 +2,17 @@ cd "$(dirname "$0")"
 cd ..
 cd ..
 
+# Parse command-line arguments
+SKIP_TESTS_AND_EXPORT=false
+
+for arg in "$@"; do
+  case $arg in
+    --skip-tests-and-export)
+      SKIP_TESTS_AND_EXPORT=true
+      shift
+      ;;
+  esac
+done
 
 # This is the project folder for the Standalone app
 standalone_folder="projects/standalone"
@@ -24,20 +35,25 @@ then
 fi
 
 echo "OK"
-echo "Running unit tests..."
 
 hise_path="projects/standalone/Builds/MacOSX/build/CI/HISE.app/Contents/MacOS/HISE"
 
-$hise_path run_unit_tests
+if [ "$SKIP_TESTS_AND_EXPORT" = false ]; then
+	echo "Running unit tests..."
 
-if [ $? != 0 ];
-then
-	echo "========================================================================"
-	echo "Error at unit testing. Aborting..."
-    exit 1
+	$hise_path run_unit_tests
+
+	if [ $? != 0 ];
+	then
+		echo "========================================================================"
+		echo "Error at unit testing. Aborting..."
+	    exit 1
+	fi
+
+	echo "OK"
+else
+	echo "Skipping unit tests..."
 fi
-
-echo "OK"
 
 project_folder="$PWD"/extras/demo_project
 
@@ -52,19 +68,22 @@ $hise_path compile_networks -c:Debug
 
 echo "OK"
 
-echo "Exporting demo project..."
+if [ "$SKIP_TESTS_AND_EXPORT" = false ]; then
+	echo "Exporting demo project..."
 
+	$hise_path set_project_folder -p:"$project_folder"
+	$hise_path export_ci "XmlPresetBackups/Demo.xml" -t:standalone -a:x64 -nolto
 
-$hise_path set_project_folder -p:"$project_folder"
-$hise_path export_ci "XmlPresetBackups/Demo.xml" -t:standalone -a:x64 -nolto
+	"$project_folder/Binaries/batchCompileOSX"
 
-"$project_folder/Binaries/batchCompileOSX"
+	if [ $? != 0 ];
+	then
+		echo "========================================================================"
+		echo "Error at project export. Aborting..."
+	    exit 1
+	fi
 
-if [ $? != 0 ];
-then
-	echo "========================================================================"
-	echo "Error at project export. Aborting..."
-    exit 1
+	echo "OK"
+else
+	echo "Skipping demo project export..."
 fi
-
-echo "OK"
