@@ -55,20 +55,20 @@ else
 	echo "Skipping unit tests..."
 fi
 
-project_folder="$PWD"/extras/demo_project
-
-echo $project_folder
-
-echo "Exporting scriptnode dll"
-
-$hise_path set_project_folder -p:"$project_folder"
-$hise_path compile_networks -c:Debug
-
-"$project_folder/DspNetworks/Binaries/batchCompileOSX"
-
-echo "OK"
-
 if [ "$SKIP_TESTS_AND_EXPORT" = false ]; then
+	project_folder="$PWD"/extras/demo_project
+
+	echo $project_folder
+
+	echo "Exporting scriptnode dll"
+
+	$hise_path set_project_folder -p:"$project_folder"
+	$hise_path compile_networks -c:Debug
+
+	"$project_folder/DspNetworks/Binaries/batchCompileOSX"
+
+	echo "OK"
+
 	echo "Exporting demo project..."
 
 	$hise_path set_project_folder -p:"$project_folder"
