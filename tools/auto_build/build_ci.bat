@@ -69,6 +69,9 @@ echo Compiling 64bit Standalone App...
 :: GitHub Actions provides these for Visual Studio 2022
 if defined MSBUILD_PATH (
     echo Found MSBuild at: %MSBUILD_PATH%
+	REM This does not find it.
+) else (
+	echo MSBuild not found via environment variable
 )
 
 :: Try to find MSBuild dynamically
@@ -77,8 +80,9 @@ if defined MSBUILD_PATH (
 ) else (
     for /f "usebackq tokens=*" %%i in (`vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath`) do set MSBUILD_EXE=%%i\MSBuild\Current\Bin\MsBuild.exe
 )
+echo Using MSBuild at: %MSBUILD_EXE%
 
-!MSBUILD_EXE! %standalone_project% /t:Build /p:Configuration=%BUILD_CONFIG%;Platform=x64 /v:m
+"!MSBUILD_EXE!" %standalone_project% /t:Build /p:Configuration=%BUILD_CONFIG%;Platform=x64 /v:m
 
 if %errorlevel% NEQ 0 (
 	echo ========================================================================
