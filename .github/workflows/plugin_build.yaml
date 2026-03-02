@@ -42,10 +42,10 @@ jobs:
         with:
           result-encoding: string
           script: |
-            const fullRepository = ${{ github.repository }};
+            const fullRepository = "${{ github.repository }}";
             const repositoryName = fullRepository.split('/')[1];
-            Console.log("Repository Name:", repositoryName);
-            return "${{ inputs.project-name }}" == "" ? repositoryName : ${{ inputs.project-name }};
+            Console.log(`Repository name: ${repositoryName}`);
+            return "${{ inputs.project-name }}" == "" ? repositoryName : "${{ inputs.project-name }}";
 
   build-macos:
     needs: pre-build
