@@ -45,7 +45,9 @@ jobs:
             const fullRepository = "${{ github.repository }}";
             const repositoryName = fullRepository.split('/')[1];
             console.log(`Repository name: ${repositoryName}`);
-            return "${{ inputs.project-name }}" == "" ? repositoryName : "${{ inputs.project-name }}";
+            const projectName = "${{ inputs.project-name }}" == "" ? repositoryName : "${{ inputs.project-name }}";
+            console.log(`Using Project Name: ${projectName}`);
+            return projectName;
 
   build-macos:
     needs: pre-build
