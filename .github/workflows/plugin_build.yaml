@@ -98,15 +98,18 @@ jobs:
       # TODO: Create a release on the repo and upload files there
       - name: Copy VST3 to root
         run: |
-          cp Binaries/Builds/MacOSX/build/Release/*.vst3 ${{ github.workspace }}/
+          cp -R Binaries/Builds/MacOSX/build/Release/*.vst3 ${{ github.workspace }}/
+
+      - name: Zip VST3 and HR1
+        run: |
+          zip -r "${{ needs.pre-build.outputs.project-name }}-macos.zip" *.vst3 *.hr1
 
       - name: Upload Plugin Artifacts
         uses: actions/upload-artifact@v6
         with:
           name: ${{ needs.pre-build.outputs.project-name }}-macos
           path: |
-            *.hr1
-            *.vst3
+            ${{ needs.pre-build.outputs.project-name }}-macos.zip
 
   # TODO: Fix Windows build - currently failing due to UseIPP flag mismatch
   build-windows:
