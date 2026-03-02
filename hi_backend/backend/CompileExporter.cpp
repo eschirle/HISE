@@ -419,7 +419,7 @@ int CompileExporter::getBuildOptionPart(const String& argument)
 	}
     case 'i':
     {
-        useIpp = false;
+        useIpp = true;
         return 0;
     }
     case 'l':
@@ -531,8 +531,7 @@ CompileExporter::ErrorCodes CompileExporter::exportInternal(TargetTypes type, Bu
 
 	const auto& data = dynamic_cast<GlobalSettingManager*>(chainToExport->getMainController())->getSettingsObject();
 
-	// if (!useIpp) useIpp = data.getSetting(HiseSettings::Compiler::UseIPP);
-	useIpp = false;
+	if (!useIpp) useIpp = data.getSetting(HiseSettings::Compiler::UseIPP);
 	
 	if (!legacyCpuSupport) legacyCpuSupport = data.getSetting(HiseSettings::Compiler::LegacyCPUSupport);
 
@@ -1018,7 +1017,6 @@ bool CompileExporter::checkSanity(TargetTypes type, BuildOption option)
 #if !USE_IPP
 	if(useIpp)
 	{
-		printErrorMessage("IPP setting mismatch USE_IPP <> useIpp, Need to find where useIpp is set in the configuration");
 		printErrorMessage("IPP setting mismatch", "You cannot compile a plugin with IPP if you have not compiled HISE with IPP.  \n> Turn off the `UseIpp` setting in the Compiler settings of HISE and retry.");
 		return false;
 	}
