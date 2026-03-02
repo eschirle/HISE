@@ -1,0 +1,183 @@
+---
+name: Build Plugin
+
+on:
+  workflow_call:
+    inputs:
+      platform:
+        description: 'Platform to build for'
+        required: true
+        type: string
+        default: 'both'
+      project-name:
+        description: 'Name of the project (used to name the final plugin files). Defaults to the name of the repository if not provided.'
+        required: false
+        type: string
+        default: ''
+      release-mode:
+        description: 'Config for HISE build.  (CI, Release, or "Minimal Build", etc)'
+        required: false
+        type: string
+        default: 'CI'
+      juce-branch:
+        description: 'Branch of JUCE to use for the build (juce6, juce8)'
+        required: false
+        type: string
+        default: 'juce6'
+      use-ipp:
+        description: 'Whether to install and use Intel IPP (only used for Windows build)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  pre-build:
+    runs-on: ubuntu-latest
+    outputs:
+      project-name: ${{ steps.project-name.outputs.result }}
+    steps:
+      - name: Set Project Name
+        id: project-name
+        uses: actions/github-script@v6
+        with:
+          result-encoding: string
+          script: |
+            const fullRepository = ${{ github.repository }};
+            const repositoryName = fullRepository.split('/')[1];
+            return "${{ inputs.project-name }}" == "" ? repositoryName : ${{ inputs.project-name }};
+
+  build-macos:
+    needs: pre-build
+    if: ${{ inputs.platform == 'both' || inputs.platform == 'macos' }}
+    runs-on: macos-latest
+    steps:
+      - name: Checkout HISE repository
+        uses: actions/checkout@v6
+        with:
+          repository: eschirle/HISE
+          ref: 'develop'
+          clean: true
+          submodules: false
+          path: HISE
+
+      - name: Checkout JUCE submodules
+        run: |
+          cd HISE
+          git submodule update --init --recursive
+          cd JUCE
+          git checkout ${{ inputs.juce-branch }}
+
+      # TODO: Investigate caching so we don't have to build HISE binary every time
+      - name: Build HISE
+        working-directory: ${{ github.workspace }}/HISE/tools/auto_build/
+        run: |
+          # Unzip SDK
+          unzip -o ${{ github.workspace }}/HISE/tools/SDK/sdk.zip -d ${{ github.workspace }}/HISE/tools/SDK/
+          
+          sh ./build_ci.sh "${{ inputs.release-mode }}" --skip-tests-and-export
+          
+          # cd ${{ github.workspace }}/HISE/projects/standalone/Builds/MacOSX
+          # xcodebuild -project "HISE Standalone.xcodeproj" -configuration Release -jobs 4 | xcpretty
+          # set -o pipefail && xcodebuild -project "HISE Standalone.xcodeproj" -configuration "${{ inputs.release-mode }}" | ./tools/Projucer/xcbeautify --renderer github-actions
+
+      - name: Checkout Current Repository
+        uses: actions/checkout@v6
+        with:
+          path: app
+      
+      # Copy everything from app folder to root
+      - name: Copy app folder to root
+        run: |
+          cp -R ${{ github.workspace }}/app/* ${{ github.workspace }}/
+
+      - name: Build Plugin
+        run: |
+          sh ./build.sh
+
+      # TODO: Create a release on the repo and upload files there
+      - name: Copy VST3 to root
+        run: |
+          cp Binaries/Builds/MacOSX/build/Release/*.vst3 ${{ github.workspace }}/
+
+      - name: Upload Plugin Artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ needs.pre-build.outputs.project-name }}-macos
+          path: |
+            *.hr1
+            *.vst3
+
+  # TODO: Fix Windows build - currently failing due to UseIPP flag mismatch
+  build-windows:
+    needs: pre-build
+    if: ${{ github.event.inputs.platform == 'both' || github.event.inputs.platform == 'windows' }}
+    runs-on: windows-latest
+    env:
+      RELEASE_MODE: "CI"
+      JUCE_BRANCH: "juce6"
+    steps:
+      # TODO: Is this cleanup step needed?
+      - name: Cleanup working dir (?)
+        run: del *.* /Q /S
+        shell: cmd
+
+      - name: Checkout HISE repository
+        uses: actions/checkout@v6
+        with:
+          repository: eschirle/HISE
+          ref: 'develop'
+          clean: true
+          submodules: false
+          path: HISE
+
+      - name: Checkout JUCE submodules
+        shell: cmd
+        run: |
+          cd HISE
+          git submodule update --init --recursive
+          cd JUCE
+          git checkout ${{ env.JUCE_BRANCH }}
+
+      - name: Install Intel IPP via pip
+        run: pip3 install ipp-static
+
+      - name: Setup MSBuild and VS Dev Environment
+        uses: microsoft/setup-msbuild@v2
+        with:
+          #vs-prerelease: true # This did not include v145
+          msbuild-architecture: x64
+          
+      - name: Build HISE CI
+        working-directory: ${{ github.workspace }}/HISE/tools/auto_build/
+        shell: cmd
+        run: |
+          chdir
+          dir
+          build_ci.bat "${{ env.RELEASE_MODE }}" --skip-tests-and-export
+
+      - name: Checkout Current Repository
+        uses: actions/checkout@v6
+        with:
+          path: app
+
+      - name: Copy app folder to root
+        run: Copy-Item -Path "${{ github.workspace }}/app/*" -Destination "${{ github.workspace }}" -Recurse -Force
+        shell: pwsh
+
+      - name: Build Plugin
+        shell: cmd
+        run: build.bat
+
+      - name: Copy VST3 to root
+        shell: pwsh
+        run: Copy-Item -Path "${{ github.workspace }}/Binaries/Builds/Windows/build/Release/*.vst3" -Destination "${{ github.workspace }}" -Recurse -Force
+
+      - name: Upload Dyes Tonguewuhh
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ needs.pre-build.outputs.project-name }}-windows
+          path: |
+            *.hr1
+            *.vst3
+
+
