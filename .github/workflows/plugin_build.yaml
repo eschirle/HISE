@@ -76,12 +76,8 @@ jobs:
         run: |
           # Unzip SDK
           unzip -o ${{ github.workspace }}/HISE/tools/SDK/sdk.zip -d ${{ github.workspace }}/HISE/tools/SDK/
-          
+
           sh ./build_ci.sh "${{ inputs.release-mode }}" --skip-tests-and-export
-          
-          # cd ${{ github.workspace }}/HISE/projects/standalone/Builds/MacOSX
-          # xcodebuild -project "HISE Standalone.xcodeproj" -configuration Release -jobs 4 | xcpretty
-          # set -o pipefail && xcodebuild -project "HISE Standalone.xcodeproj" -configuration "${{ inputs.release-mode }}" | ./tools/Projucer/xcbeautify --renderer github-actions
 
       - name: Checkout Current Repository
         uses: actions/checkout@v6
@@ -91,10 +87,12 @@ jobs:
       # Copy everything from app folder to root
       - name: Copy app folder to root
         run: |
-          cp -R ${{ github.workspace }}/app/* ${{ github.workspace }}/
+          cp -R ${{ github.workspace }}/app/* .
 
       - name: Build Plugin
         run: |
+          # Copy scripts to root and run
+          cp ./HISE/scripts/* .
           sh ./build.sh
 
       # TODO: Create a release on the repo and upload files there
@@ -169,7 +167,9 @@ jobs:
 
       - name: Build Plugin
         shell: cmd
-        run: build.bat
+        run: |
+          copy HISE\scripts\* .
+          build.bat
 
       - name: Copy VST3 to root
         shell: pwsh
