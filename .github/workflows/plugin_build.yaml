@@ -29,6 +29,21 @@ on:
         required: false
         type: boolean
         default: false
+    secrets:
+      PROD_MACOS_CERTIFICATE:
+        required: true
+      PROD_MACOS_CERTIFICATE_PWD:
+        required: true
+      PROD_MACOS_CERTIFICATE_NAME:
+        required: true
+      PROD_MACOS_CI_KEYCHAIN_PWD:
+        required: true
+      PROD_MACOS_NOTARIZATION_APPLE_ID:
+        required: true
+      PROD_MACOS_NOTARIZATION_TEAM_ID:
+        required: true
+      PROD_MACOS_NOTARIZATION_PWD:
+        required: true
 
 jobs:
   pre-build:
