@@ -114,14 +114,22 @@ jobs:
       - name: Copy VST3 to root
         run: |
           cp -R Binaries/Builds/MacOSX/build/Release/*.vst3 ${{ github.workspace }}/
+          cp -R Binaries/Builds/MacOSX/build/Release/*.component ${{ github.workspace }}/
+          cp -R Installer/*.app ${{ github.workspace }}/
 
       - name: Detect VST file
         id: detect-vst
         run: |
           # Find vst3 file within the github workspace and write the path to the output variable
           vst3_path=$(find ${{ github.workspace }} -name "*.vst3" -print -quit)
+          component_path=$(find ${{ github.workspace }} -name "*.component" -print -quit)
+          app_path=$(find ${{ github.workspace }} -name "*.app" -print -quit)
           echo "Found VST3 file at: $vst3_path"
           echo "vst3_path=$vst3_path" >> $GITHUB_OUTPUT
+          echo "Found Component file at: $component_path"
+          echo "component_path=$component_path" >> $GITHUB_OUTPUT
+          echo "Found App file at: $app_path"
+          echo "app_path=$app_path" >> $GITHUB_OUTPUT
 
       # Sign the plugin for MacOS
       - name: Codesign vst3 bundle
@@ -145,6 +153,14 @@ jobs:
 
           # We finally codesign our app bundle, specifying the Hardened runtime option
           /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime "${{ steps.detect-vst.outputs.vst3_path }}" -v
+          if [ -f "${{ steps.detect-vst.outputs.component_path }}" ]; then
+            echo "Codesigning Component bundle"
+            /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime "${{ steps.detect-vst.outputs.component_path }}" -v
+          fi
+          if [ -f "${{ steps.detect-vst.outputs.app_path }}" ]; then
+            echo "Codesigning Installer app"
+            /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime "${{ steps.detect-vst.outputs.app_path }}" -v
+          fi
 
       - name: Notarize VST3 bundle
         env:
@@ -178,9 +194,37 @@ jobs:
           echo "Attach staple"
           xcrun stapler staple "${{ steps.detect-vst.outputs.vst3_path }}"
 
-      - name: Zip VST3 and HR1
+      - name: Notarize Component if found
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.PROD_MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.PROD_MACOS_CERTIFICATE_PWD }}
+          MACOS_CERTIFICATE_NAME: ${{ secrets.PROD_MACOS_CERTIFICATE_NAME }}
+          MACOS_CI_KEYCHAIN_PWD: ${{ secrets.PROD_MACOS_CI_KEYCHAIN_PWD }}
         run: |
-          zip -r "${{ needs.pre-build.outputs.project-name }}-macos.zip" *.vst3 *.hr1
+          if [ -f "${{ steps.detect-vst.outputs.component_path }}" ]; then
+            echo "Notarizing Component bundle"
+            ditto -c -k --keepParent "${{ steps.detect-vst.outputs.component_path }}" "component_notarization.zip"
+            xcrun notarytool submit "component_notarization.zip" --keychain-profile "notarytool-profile" --wait
+            xcrun stapler staple "${{ steps.detect-vst.outputs.component_path }}"
+          fi
+
+      - name: Notarize Installer if found
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.PROD_MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.PROD_MACOS_CERTIFICATE_PWD }}
+          MACOS_CERTIFICATE_NAME: ${{ secrets.PROD_MACOS_CERTIFICATE_NAME }}
+          MACOS_CI_KEYCHAIN_PWD: ${{ secrets.PROD_MACOS_CI_KEYCHAIN_PWD }}
+        run: |
+          if [ -f "${{ steps.detect-vst.outputs.app_path }}" ]; then
+            echo "Notarizing Installer app"
+            ditto -c -k --keepParent "${{ steps.detect-vst.outputs.app_path }}" "installer_notarization.zip"
+            xcrun notarytool submit "installer_notarization.zip" --keychain-profile "notarytool-profile" --wait
+            xcrun stapler staple "${{ steps.detect-vst.outputs.app_path }}"
+          fi
+      
+      - name: Zip Everything
+        run: |
+          zip -r "${{ needs.pre-build.outputs.project-name }}-macos.zip" *.vst3 *.hr1 *.component *.app
 
       - name: Upload Plugin Artifacts
         uses: actions/upload-artifact@v6
