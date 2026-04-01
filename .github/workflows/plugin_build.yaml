@@ -153,11 +153,11 @@ jobs:
 
           # We finally codesign our app bundle, specifying the Hardened runtime option
           /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime "${{ steps.detect-vst.outputs.vst3_path }}" -v
-          if [ -f "${{ steps.detect-vst.outputs.component_path }}" ]; then
+          if [ -e "${{ steps.detect-vst.outputs.component_path }}" ]; then
             echo "Codesigning Component bundle"
             /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime "${{ steps.detect-vst.outputs.component_path }}" -v
           fi
-          if [ -f "${{ steps.detect-vst.outputs.app_path }}" ]; then
+          if [ -e "${{ steps.detect-vst.outputs.app_path }}" ]; then
             echo "Codesigning Installer app"
             /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime "${{ steps.detect-vst.outputs.app_path }}" -v
           fi
