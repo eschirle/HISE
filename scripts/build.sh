@@ -26,9 +26,6 @@ fi
 # This is the folder of the HISE source code
 hisepath="./HISE"
 
-# Set the plugin formats you want to compile
-plugin_formats=VST3
-
 # Set the plugin type (instrument or effect)
 plugin_type=instrument
 
@@ -98,7 +95,12 @@ chmod +x "$hisepath/tools/Projucer/Projucer.app/Contents/MacOS/Projucer"
 
 $hise_binary set_project_folder -p:"$project_folder"
 
-$hise_binary export_ci "XmlPresetBackups/$xml_name" -t:$plugin_type -a:x64 -p:$plugin_formats
+$hise_binary export_ci "XmlPresetBackups/$xml_name" -t:$plugin_type -a:x64 -p:VST3
+
+echo "========================================================================"
+echo "Building AU format"
+
+$hise_binary export_ci "XmlPresetBackups/$xml_name" -t:$plugin_type -a:x64 -p:AU
 
 "$project_folder/Binaries/batchCompileOSX"
 
@@ -113,17 +115,28 @@ echo "OK"
 
 # Find the Installer json files - they are not where expected
 
-ls -la
+echo "Searching for installer stuff"
 
-echo "Checking for Binaries output"
+# Find multipagecreator
+mp_binary=$(find $project_folder -name "multipagecreator" -type f -print -quit)
+if [ -n "$mp_binary" ]; then
+    echo "Found multipagecreator at: $mp_binary"
+else
+    echo "multipagecreator not found"
+fi
 
-cd Binaries/Builds/MacOSX
-ls -la
+# Find batchCompileOSX
+batch_compile=$(find $project_folder -name "batchCompileOSX" -type f -print -quit)
+if [ -n "$batch_compile" ]; then
+    echo "Found batchCompileOSX at: $batch_compile"
+else
+    echo "batchCompileOSX not found"
+fi
 
 # Code for exporting / building an installer
-"$mp_binary" --export:"$project_folder/Installer/installer.json" --hisepath:"$hisepath" --teamid:$team_id
-chmod +x "$project_folder/Installer/Binaries/batchCompileOSX"
-"$project_folder/Installer/Binaries/batchCompileOSX"
+# "$mp_binary" --export:"$project_folder/Installer/installer.json" --hisepath:"$hisepath" --teamid:$team_id
+# chmod +x "$project_folder/Installer/Binaries/batchCompileOSX"
+# "$project_folder/Installer/Binaries/batchCompileOSX"
 
 # STAGE 4: Codesigning =============================================================================
 
