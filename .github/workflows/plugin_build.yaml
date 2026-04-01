@@ -111,11 +111,11 @@ jobs:
           sh ./build.sh
 
       # TODO: Create a release on the repo and upload files there
-      # - name: Copy VST3 to root
-      #   run: |
-      #     cp -R Binaries/Builds/MacOSX/build/Release/*.vst3 ${{ github.workspace }}/
-      #     cp -R Binaries/Builds/MacOSX/build/Release/*.component ${{ github.workspace }}/
-      #     cp -R Installer/*.app ${{ github.workspace }}/
+      - name: Copy VST3 to root
+        run: |
+          cp -R Binaries/Builds/MacOSX/build/Release/*.vst3 ${{ github.workspace }}/
+          cp -R Binaries/Builds/MacOSX/build/Release/*.component ${{ github.workspace }}/
+          # cp -R Installer/*.app ${{ github.workspace }}/
 
       - name: Detect VST file
         id: detect-vst

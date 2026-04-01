@@ -95,15 +95,7 @@ chmod +x "$hisepath/tools/Projucer/Projucer.app/Contents/MacOS/Projucer"
 
 $hise_binary set_project_folder -p:"$project_folder"
 
-$hise_binary export_ci "XmlPresetBackups/$xml_name" -t:$plugin_type -a:x64 -p:VST3
-
-cp -R Binaries/Builds/MacOSX/build/Release/*.vst3 .
-
-echo "========================================================================"
-echo "Building AU format"
-
-$hise_binary export_ci "XmlPresetBackups/$xml_name" -t:$plugin_type -a:x64 -p:AU
-cp -R Binaries/Builds/MacOSX/build/Release/*.component .
+$hise_binary export_ci "XmlPresetBackups/$xml_name" -t:$plugin_type -a:x64 -p:VST3 -p:AU
 
 "$project_folder/Binaries/batchCompileOSX"
 
