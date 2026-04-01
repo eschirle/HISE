@@ -138,9 +138,9 @@ fi
 # echo "Code signing"
 
 # echo "Signing VST & AU"
-# codesign --deep --force --options runtime -s "$APPLE_CERTIFICATE_ID" "$au_project" --timestamp
+# codesign --deep --force --options runtime -s "$MACOS_CERTIFICATE_NAME" "$au_project" --timestamp
 # codesign -dv --verbose=4 "$au_project"
-# codesign --deep --force --options runtime -s "$APPLE_CERTIFICATE_ID" "$vst3_project" --timestamp
+# codesign --deep --force --options runtime -s "$MACOS_CERTIFICATE_NAME" "$vst3_project" --timestamp
 # codesign -dv --verbose=4 "$vst3_project"
 
 # echo "Signing Installer"

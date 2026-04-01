@@ -155,12 +155,13 @@ jobs:
           /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime "${{ steps.detect-vst.outputs.vst3_path }}" -v
           if [ -e "${{ steps.detect-vst.outputs.component_path }}" ]; then
             echo "Codesigning Component bundle"
-            /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime "${{ steps.detect-vst.outputs.component_path }}" -v
+            /usr/bin/codesign --deep --force -s "$MACOS_CERTIFICATE_NAME" --options runtime "${{ steps.detect-vst.outputs.component_path }}" -v --timestamp
+            codesign -dv --verbose=4 "${{ steps.detect-vst.outputs.component_path }}"
           fi
-          if [ -e "${{ steps.detect-vst.outputs.app_path }}" ]; then
-            echo "Codesigning Installer app"
-            /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime "${{ steps.detect-vst.outputs.app_path }}" -v
-          fi
+          # if [ -e "${{ steps.detect-vst.outputs.app_path }}" ]; then
+          #   echo "Codesigning Installer app"
+          #   /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime "${{ steps.detect-vst.outputs.app_path }}" -v
+          # fi
 
       - name: Notarize VST3 bundle
         env:
@@ -208,19 +209,19 @@ jobs:
             xcrun stapler staple "${{ steps.detect-vst.outputs.component_path }}"
           fi
 
-      - name: Notarize Installer if found
-        env:
-          MACOS_CERTIFICATE: ${{ secrets.PROD_MACOS_CERTIFICATE }}
-          MACOS_CERTIFICATE_PWD: ${{ secrets.PROD_MACOS_CERTIFICATE_PWD }}
-          MACOS_CERTIFICATE_NAME: ${{ secrets.PROD_MACOS_CERTIFICATE_NAME }}
-          MACOS_CI_KEYCHAIN_PWD: ${{ secrets.PROD_MACOS_CI_KEYCHAIN_PWD }}
-        run: |
-          if [ -e "${{ steps.detect-vst.outputs.app_path }}" ]; then
-            echo "Notarizing Installer app"
-            ditto -c -k --keepParent "${{ steps.detect-vst.outputs.app_path }}" "installer_notarization.zip"
-            xcrun notarytool submit "installer_notarization.zip" --keychain-profile "notarytool-profile" --wait
-            xcrun stapler staple "${{ steps.detect-vst.outputs.app_path }}"
-          fi
+      # - name: Notarize Installer if found
+      #   env:
+      #     MACOS_CERTIFICATE: ${{ secrets.PROD_MACOS_CERTIFICATE }}
+      #     MACOS_CERTIFICATE_PWD: ${{ secrets.PROD_MACOS_CERTIFICATE_PWD }}
+      #     MACOS_CERTIFICATE_NAME: ${{ secrets.PROD_MACOS_CERTIFICATE_NAME }}
+      #     MACOS_CI_KEYCHAIN_PWD: ${{ secrets.PROD_MACOS_CI_KEYCHAIN_PWD }}
+      #   run: |
+      #     if [ -e "${{ steps.detect-vst.outputs.app_path }}" ]; then
+      #       echo "Notarizing Installer app"
+      #       ditto -c -k --keepParent "${{ steps.detect-vst.outputs.app_path }}" "installer_notarization.zip"
+      #       xcrun notarytool submit "installer_notarization.zip" --keychain-profile "notarytool-profile" --wait
+      #       xcrun stapler staple "${{ steps.detect-vst.outputs.app_path }}"
+      #     fi
       
       - name: Zip Everything
         run: |
