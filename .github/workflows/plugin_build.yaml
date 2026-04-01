@@ -201,7 +201,7 @@ jobs:
           MACOS_CERTIFICATE_NAME: ${{ secrets.PROD_MACOS_CERTIFICATE_NAME }}
           MACOS_CI_KEYCHAIN_PWD: ${{ secrets.PROD_MACOS_CI_KEYCHAIN_PWD }}
         run: |
-          if [ -f "${{ steps.detect-vst.outputs.component_path }}" ]; then
+          if [ -e "${{ steps.detect-vst.outputs.component_path }}" ]; then
             echo "Notarizing Component bundle"
             ditto -c -k --keepParent "${{ steps.detect-vst.outputs.component_path }}" "component_notarization.zip"
             xcrun notarytool submit "component_notarization.zip" --keychain-profile "notarytool-profile" --wait
@@ -215,7 +215,7 @@ jobs:
           MACOS_CERTIFICATE_NAME: ${{ secrets.PROD_MACOS_CERTIFICATE_NAME }}
           MACOS_CI_KEYCHAIN_PWD: ${{ secrets.PROD_MACOS_CI_KEYCHAIN_PWD }}
         run: |
-          if [ -f "${{ steps.detect-vst.outputs.app_path }}" ]; then
+          if [ -e "${{ steps.detect-vst.outputs.app_path }}" ]; then
             echo "Notarizing Installer app"
             ditto -c -k --keepParent "${{ steps.detect-vst.outputs.app_path }}" "installer_notarization.zip"
             xcrun notarytool submit "installer_notarization.zip" --keychain-profile "notarytool-profile" --wait
