@@ -69,7 +69,18 @@ jobs:
     if: ${{ inputs.platform == 'both' || inputs.platform == 'macos' }}
     runs-on: macos-latest
     steps:
+      - name: Cache HISE build
+        id: cache-hise
+        uses: actions/cache@v4
+        with:
+          path: HISE
+          key: ${{ runner.os }}-hise-${{ inputs.release-mode }}-${{ inputs.juce-branch }}-${{ hashFiles('HISE/tools/auto_build/build_ci.sh', 'HISE/tools/SDK/sdk.zip') }}
+          restore-keys: |
+            ${{ runner.os }}-hise-${{ inputs.release-mode }}-${{ inputs.juce-branch }}-
+            ${{ runner.os }}-hise-
+
       - name: Checkout HISE repository
+        if: steps.cache-hise.outputs.cache-hit != 'true'
         uses: actions/checkout@v6
         with:
           repository: eschirle/HISE
@@ -79,14 +90,15 @@ jobs:
           path: HISE
 
       - name: Checkout JUCE submodules
+        if: steps.cache-hise.outputs.cache-hit != 'true'
         run: |
           cd HISE
           git submodule update --init --recursive
           cd JUCE
           git checkout ${{ inputs.juce-branch }}
 
-      # TODO: Investigate caching so we don't have to build HISE binary every time
       - name: Build HISE
+        if: steps.cache-hise.outputs.cache-hit != 'true'
         working-directory: ${{ github.workspace }}/HISE/tools/auto_build/
         run: |
           # Unzip SDK
@@ -130,9 +142,47 @@ jobs:
           echo "component_path=$component_path" >> $GITHUB_OUTPUT
           echo "Found App file at: $app_path"
           echo "app_path=$app_path" >> $GITHUB_OUTPUT
+          ls -la ${{ github.workspace }}/*.vst3
+          ls -la ${{ github.workspace }}/*.component
+
+      # Upload unsigned artifacts to be used by next job
+      - name: Upload Unsigned Artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ needs.pre-build.outputs.project-name }}-unsigned-macos
+          path: |
+            *.hr1
+            *.vst3
+            *.component
+            *.app
+
+  codesign-macos:
+    needs: [pre-build, build-macos]
+    if: ${{ github.event.inputs.platform == 'both' || github.event.inputs.platform == 'macos' }}
+    runs-on: macos-latest
+    steps:
+      - name: Download unsigned plugin artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: ${{ needs.pre-build.outputs.project-name }}-unsigned-macos
+
+      - name: Find Downloaded Artifacts
+        id: find-files
+        run: |
+          vst3_path=$(find . -maxdepth 1 -name "*.vst3" -print -quit)
+          component_path=$(find . -maxdepth 1 -name "*.component" -print -quit)
+          app_path=$(find . -maxdepth 1 -name "*.app" -print -quit)
+          
+          echo "vst3_path=$vst3_path" >> $GITHUB_OUTPUT
+          echo "component_path=$component_path" >> $GITHUB_OUTPUT
+          echo "app_path=$app_path" >> $GITHUB_OUTPUT
+          
+          echo "Found VST3: $vst3_path"
+          echo "Found Component: $component_path"
+          echo "Found App: $app_path"
 
       # Sign the plugin for MacOS
-      - name: Codesign vst3 bundle
+      - name: Setup Code Signing Keychain
         env:
           MACOS_CERTIFICATE: ${{ secrets.PROD_MACOS_CERTIFICATE }}
           MACOS_CERTIFICATE_PWD: ${{ secrets.PROD_MACOS_CERTIFICATE_PWD }}
@@ -140,10 +190,6 @@ jobs:
           MACOS_CI_KEYCHAIN_PWD: ${{ secrets.PROD_MACOS_CI_KEYCHAIN_PWD }}
         run: |
           echo $MACOS_CERTIFICATE | base64 --decode > certificate.p12
-
-          # We need to create a new keychain, otherwise using the certificate will prompt
-          # with a UI dialog asking for the certificate password, which we can't
-          # use in a headless CI environment
           
           security create-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain 
           security default-keychain -s build.keychain
@@ -152,16 +198,15 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CI_KEYCHAIN_PWD" build.keychain
 
           # We finally codesign our app bundle, specifying the Hardened runtime option
-          /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime "${{ steps.detect-vst.outputs.vst3_path }}" -v
-          if [ -e "${{ steps.detect-vst.outputs.component_path }}" ]; then
-            echo "Codesigning Component bundle"
-            /usr/bin/codesign --deep --force -s "$MACOS_CERTIFICATE_NAME" --options runtime "${{ steps.detect-vst.outputs.component_path }}" -v --timestamp
-            codesign -dv --verbose=4 "${{ steps.detect-vst.outputs.component_path }}"
-          fi
-          # if [ -e "${{ steps.detect-vst.outputs.app_path }}" ]; then
-          #   echo "Codesigning Installer app"
-          #   /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime "${{ steps.detect-vst.outputs.app_path }}" -v
-          # fi
+          /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime "${{ steps.find-files.outputs.vst3_path }}" -v
+
+      - name: Codesign Component
+        if: ${{ steps.find-files.outputs.component_path != '' }}
+        env:
+          MACOS_CERTIFICATEE_NAME: ${{ secrets.PROD_MACOS_CERTIFICATE_NAME }}
+        run: |
+          codesign --deep --force --options runtime -s "$MACOS_CERTIFICATE_NAME" "${{ steps.find-files.outputs.component_path }}" --timestamp
+          codesign -dv --verbose=4 "${{ steps.find-files.outputs.component_path }}"
 
       - name: Notarize VST3 bundle
         env:
@@ -169,45 +214,30 @@ jobs:
           PROD_MACOS_NOTARIZATION_TEAM_ID: ${{ secrets.PROD_MACOS_NOTARIZATION_TEAM_ID }}
           PROD_MACOS_NOTARIZATION_PWD: ${{ secrets.PROD_MACOS_NOTARIZATION_PWD }}
         run: |
-          # Store the notarization credentials so that we can prevent a UI password dialog
-          # from blocking the CI
-
           echo "Create keychain profile"
           xcrun notarytool store-credentials "notarytool-profile" --apple-id "$PROD_MACOS_NOTARIZATION_APPLE_ID" --team-id "$PROD_MACOS_NOTARIZATION_TEAM_ID" --password "$PROD_MACOS_NOTARIZATION_PWD"
 
-          # We can't notarize an app bundle directly, but we need to compress it as an archive.
-          # Therefore, we create a zip file containing our app bundle, so that we can send it to the
-          # notarization service
-
           echo "Creating temp notarization archive"
-          ditto -c -k --keepParent "${{ steps.detect-vst.outputs.vst3_path }}" "notarization.zip"
-
-          # Here we send the notarization request to the Apple's Notarization service, waiting for the result.
-          # This typically takes a few seconds inside a CI environment, but it might take more depending on the App
-          # characteristics. Visit the Notarization docs for more information and strategies on how to optimize it if
-          # you're curious
+          ditto -c -k --keepParent "${{ steps.find-files.outputs.vst3_path }}" "notarization.zip"
 
           echo "Notarize app"
           xcrun notarytool submit "notarization.zip" --keychain-profile "notarytool-profile" --wait
 
-          # Finally, we need to "attach the staple" to our executable, which will allow our app to be
-          # validated by macOS even when an internet connection is not available.
           echo "Attach staple"
-          xcrun stapler staple "${{ steps.detect-vst.outputs.vst3_path }}"
+          xcrun stapler staple "${{ steps.find-files.outputs.vst3_path }}"
 
       - name: Notarize Component if found
+        if: ${{ steps.find-files.outputs.component_path != '' }}
         env:
           MACOS_CERTIFICATE: ${{ secrets.PROD_MACOS_CERTIFICATE }}
           MACOS_CERTIFICATE_PWD: ${{ secrets.PROD_MACOS_CERTIFICATE_PWD }}
           MACOS_CERTIFICATE_NAME: ${{ secrets.PROD_MACOS_CERTIFICATE_NAME }}
           MACOS_CI_KEYCHAIN_PWD: ${{ secrets.PROD_MACOS_CI_KEYCHAIN_PWD }}
         run: |
-          if [ -e "${{ steps.detect-vst.outputs.component_path }}" ]; then
-            echo "Notarizing Component bundle"
-            ditto -c -k --keepParent "${{ steps.detect-vst.outputs.component_path }}" "component_notarization.zip"
-            xcrun notarytool submit "component_notarization.zip" --keychain-profile "notarytool-profile" --wait
-            xcrun stapler staple "${{ steps.detect-vst.outputs.component_path }}"
-          fi
+          echo "Notarizing Component bundle"
+          ditto -c -k --keepParent "${{ steps.find-files.outputs.component_path }}" "component_notarization.zip"
+          xcrun notarytool submit "component_notarization.zip" --keychain-profile "notarytool-profile" --wait
+          xcrun stapler staple "${{ steps.find-files.outputs.component_path }}"
 
       # - name: Notarize Installer if found
       #   env:
@@ -216,11 +246,11 @@ jobs:
       #     MACOS_CERTIFICATE_NAME: ${{ secrets.PROD_MACOS_CERTIFICATE_NAME }}
       #     MACOS_CI_KEYCHAIN_PWD: ${{ secrets.PROD_MACOS_CI_KEYCHAIN_PWD }}
       #   run: |
-      #     if [ -e "${{ steps.detect-vst.outputs.app_path }}" ]; then
+      #     if [ -e "${{ steps.find-files.outputs.app_path }}" ]; then
       #       echo "Notarizing Installer app"
-      #       ditto -c -k --keepParent "${{ steps.detect-vst.outputs.app_path }}" "installer_notarization.zip"
+      #       ditto -c -k --keepParent "${{ steps.find-files.outputs.app_path }}" "installer_notarization.zip"
       #       xcrun notarytool submit "installer_notarization.zip" --keychain-profile "notarytool-profile" --wait
-      #       xcrun stapler staple "${{ steps.detect-vst.outputs.app_path }}"
+      #       xcrun stapler staple "${{ steps.find-files.outputs.app_path }}"
       #     fi
       
       - name: Zip Everything
@@ -233,6 +263,8 @@ jobs:
           name: ${{ needs.pre-build.outputs.project-name }}-macos
           path: |
             ${{ needs.pre-build.outputs.project-name }}-macos.zip
+
+
 
   # TODO: Fix Windows build - currently failing due to UseIPP flag mismatch
   build-windows:
