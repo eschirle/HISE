@@ -203,7 +203,10 @@ jobs:
       - name: Codesign Component
         if: ${{ steps.find-files.outputs.component_path != '' }}
         env:
-          MACOS_CERTIFICATEE_NAME: ${{ secrets.PROD_MACOS_CERTIFICATE_NAME }}
+          MACOS_CERTIFICATE: ${{ secrets.PROD_MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.PROD_MACOS_CERTIFICATE_PWD }}
+          MACOS_CERTIFICATE_NAME: ${{ secrets.PROD_MACOS_CERTIFICATE_NAME }}
+          MACOS_CI_KEYCHAIN_PWD: ${{ secrets.PROD_MACOS_CI_KEYCHAIN_PWD }}
         run: |
           codesign --deep --force --options runtime -s "$MACOS_CERTIFICATE_NAME" "${{ steps.find-files.outputs.component_path }}" --timestamp
           codesign -dv --verbose=4 "${{ steps.find-files.outputs.component_path }}"
