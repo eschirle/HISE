@@ -110,6 +110,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           path: app
+          lfs: true
       
       # Copy everything from app folder to root
       - name: Copy app folder to root
@@ -321,6 +322,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           path: app
+          lfs: true
 
       - name: Copy app folder to root
         run: Copy-Item -Path "${{ github.workspace }}/app/*" -Destination "${{ github.workspace }}" -Recurse -Force
