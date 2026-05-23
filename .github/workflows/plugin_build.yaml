@@ -30,19 +30,19 @@ on:
         type: boolean
         default: false
     secrets:
-      PROD_MACOS_CERTIFICATE:
+      MACOS_CERTIFICATE:
         required: true
-      PROD_MACOS_CERTIFICATE_PWD:
+      MACOS_CERTIFICATE_PWD:
         required: true
-      PROD_MACOS_CERTIFICATE_NAME:
+      MACOS_CERTIFICATE_NAME:
         required: true
-      PROD_MACOS_CI_KEYCHAIN_PWD:
+      MACOS_CI_KEYCHAIN_PWD:
         required: true
-      PROD_MACOS_NOTARIZATION_APPLE_ID:
+      MACOS_NOTARIZATION_APPLE_ID:
         required: true
-      PROD_MACOS_NOTARIZATION_TEAM_ID:
+      MACOS_NOTARIZATION_TEAM_ID:
         required: true
-      PROD_MACOS_NOTARIZATION_PWD:
+      MACOS_NOTARIZATION_PWD:
         required: true
 
 jobs:
@@ -184,10 +184,10 @@ jobs:
       # Sign the plugin for MacOS
       - name: Setup Code Signing Keychain
         env:
-          MACOS_CERTIFICATE: ${{ secrets.PROD_MACOS_CERTIFICATE }}
-          MACOS_CERTIFICATE_PWD: ${{ secrets.PROD_MACOS_CERTIFICATE_PWD }}
-          MACOS_CERTIFICATE_NAME: ${{ secrets.PROD_MACOS_CERTIFICATE_NAME }}
-          MACOS_CI_KEYCHAIN_PWD: ${{ secrets.PROD_MACOS_CI_KEYCHAIN_PWD }}
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          MACOS_CERTIFICATE_NAME: ${{ secrets.MACOS_CERTIFICATE_NAME }}
+          MACOS_CI_KEYCHAIN_PWD: ${{ secrets.MACOS_CI_KEYCHAIN_PWD }}
         run: |
           echo $MACOS_CERTIFICATE | base64 --decode > certificate.p12
           
@@ -203,22 +203,22 @@ jobs:
       - name: Codesign Component
         if: ${{ steps.find-files.outputs.component_path != '' }}
         env:
-          MACOS_CERTIFICATE: ${{ secrets.PROD_MACOS_CERTIFICATE }}
-          MACOS_CERTIFICATE_PWD: ${{ secrets.PROD_MACOS_CERTIFICATE_PWD }}
-          MACOS_CERTIFICATE_NAME: ${{ secrets.PROD_MACOS_CERTIFICATE_NAME }}
-          MACOS_CI_KEYCHAIN_PWD: ${{ secrets.PROD_MACOS_CI_KEYCHAIN_PWD }}
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          MACOS_CERTIFICATE_NAME: ${{ secrets.MACOS_CERTIFICATE_NAME }}
+          MACOS_CI_KEYCHAIN_PWD: ${{ secrets.MACOS_CI_KEYCHAIN_PWD }}
         run: |
           codesign --deep --force --options runtime -s "$MACOS_CERTIFICATE_NAME" "${{ steps.find-files.outputs.component_path }}" --timestamp
           codesign -dv --verbose=4 "${{ steps.find-files.outputs.component_path }}"
 
       - name: Notarize VST3 bundle
         env:
-          PROD_MACOS_NOTARIZATION_APPLE_ID: ${{ secrets.PROD_MACOS_NOTARIZATION_APPLE_ID }}
-          PROD_MACOS_NOTARIZATION_TEAM_ID: ${{ secrets.PROD_MACOS_NOTARIZATION_TEAM_ID }}
-          PROD_MACOS_NOTARIZATION_PWD: ${{ secrets.PROD_MACOS_NOTARIZATION_PWD }}
+          MACOS_NOTARIZATION_APPLE_ID: ${{ secrets.MACOS_NOTARIZATION_APPLE_ID }}
+          MACOS_NOTARIZATION_TEAM_ID: ${{ secrets.MACOS_NOTARIZATION_TEAM_ID }}
+          MACOS_NOTARIZATION_PWD: ${{ secrets.MACOS_NOTARIZATION_PWD }}
         run: |
           echo "Create keychain profile"
-          xcrun notarytool store-credentials "notarytool-profile" --apple-id "$PROD_MACOS_NOTARIZATION_APPLE_ID" --team-id "$PROD_MACOS_NOTARIZATION_TEAM_ID" --password "$PROD_MACOS_NOTARIZATION_PWD"
+          xcrun notarytool store-credentials "notarytool-profile" --apple-id "$MACOS_NOTARIZATION_APPLE_ID" --team-id "$MACOS_NOTARIZATION_TEAM_ID" --password "$MACOS_NOTARIZATION_PWD"
 
           echo "Creating temp notarization archive"
           ditto -c -k --keepParent "${{ steps.find-files.outputs.vst3_path }}" "notarization.zip"
@@ -232,10 +232,10 @@ jobs:
       - name: Notarize Component if found
         if: ${{ steps.find-files.outputs.component_path != '' }}
         env:
-          MACOS_CERTIFICATE: ${{ secrets.PROD_MACOS_CERTIFICATE }}
-          MACOS_CERTIFICATE_PWD: ${{ secrets.PROD_MACOS_CERTIFICATE_PWD }}
-          MACOS_CERTIFICATE_NAME: ${{ secrets.PROD_MACOS_CERTIFICATE_NAME }}
-          MACOS_CI_KEYCHAIN_PWD: ${{ secrets.PROD_MACOS_CI_KEYCHAIN_PWD }}
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          MACOS_CERTIFICATE_NAME: ${{ secrets.MACOS_CERTIFICATE_NAME }}
+          MACOS_CI_KEYCHAIN_PWD: ${{ secrets.MACOS_CI_KEYCHAIN_PWD }}
         run: |
           echo "Notarizing Component bundle"
           ditto -c -k --keepParent "${{ steps.find-files.outputs.component_path }}" "component_notarization.zip"
@@ -244,10 +244,10 @@ jobs:
 
       # - name: Notarize Installer if found
       #   env:
-      #     MACOS_CERTIFICATE: ${{ secrets.PROD_MACOS_CERTIFICATE }}
-      #     MACOS_CERTIFICATE_PWD: ${{ secrets.PROD_MACOS_CERTIFICATE_PWD }}
-      #     MACOS_CERTIFICATE_NAME: ${{ secrets.PROD_MACOS_CERTIFICATE_NAME }}
-      #     MACOS_CI_KEYCHAIN_PWD: ${{ secrets.PROD_MACOS_CI_KEYCHAIN_PWD }}
+      #     MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+      #     MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+      #     MACOS_CERTIFICATE_NAME: ${{ secrets.MACOS_CERTIFICATE_NAME }}
+      #     MACOS_CI_KEYCHAIN_PWD: ${{ secrets.MACOS_CI_KEYCHAIN_PWD }}
       #   run: |
       #     if [ -e "${{ steps.find-files.outputs.app_path }}" ]; then
       #       echo "Notarizing Installer app"
