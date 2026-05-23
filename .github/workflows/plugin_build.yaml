@@ -148,7 +148,7 @@ jobs:
 
       # Upload unsigned artifacts to be used by next job
       - name: Upload Unsigned Artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ needs.pre-build.outputs.project-name }}-unsigned-macos
           path: |
@@ -163,7 +163,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Download unsigned plugin artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: ${{ needs.pre-build.outputs.project-name }}-unsigned-macos
 
@@ -262,7 +262,7 @@ jobs:
           zip -r "${{ needs.pre-build.outputs.project-name }}-macos.zip" *.vst3 *.hr1 *.component *.app
 
       - name: Upload Plugin Artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ needs.pre-build.outputs.project-name }}-macos
           path: |
@@ -339,7 +339,7 @@ jobs:
         run: Copy-Item -Path "${{ github.workspace }}/Binaries/Builds/Windows/build/Release/*.vst3" -Destination "${{ github.workspace }}" -Recurse -Force
 
       - name: Upload Dyes Tonguewuhh
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ needs.pre-build.outputs.project-name }}-windows
           path: |
