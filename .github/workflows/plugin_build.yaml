@@ -80,10 +80,19 @@ jobs:
             ${{ runner.os }}-hise-
 
       - name: Checkout HISE repository
-        if: steps.cache-hise.outputs.cache-hit != 'true'
         uses: actions/checkout@v6
         with:
           repository: eschirle/HISE
+          ref: 'main'
+          clean: true
+          submodules: false
+          path: eshurl
+
+      - name: Checkout HISE repository
+        if: steps.cache-hise.outputs.cache-hit != 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: christophhart/HISE
           ref: 'develop'
           clean: true
           submodules: false
