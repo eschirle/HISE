@@ -89,7 +89,6 @@ jobs:
           path: eshurl
 
       - name: Checkout HISE repository
-        if: steps.cache-hise.outputs.cache-hit != 'true'
         uses: actions/checkout@v6
         with:
           repository: christophhart/HISE
@@ -99,7 +98,6 @@ jobs:
           path: HISE
 
       - name: Checkout JUCE submodules
-        if: steps.cache-hise.outputs.cache-hit != 'true'
         run: |
           cd HISE
           git submodule update --init --recursive
