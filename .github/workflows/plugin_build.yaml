@@ -89,6 +89,7 @@ jobs:
           path: eshurl
 
       - name: Checkout HISE repository
+        if: steps.cache-hise.outputs.cache-hit != 'true'
         uses: actions/checkout@v6
         with:
           repository: christophhart/HISE
@@ -98,6 +99,7 @@ jobs:
           path: HISE
 
       - name: Checkout JUCE submodules
+        if: steps.cache-hise.outputs.cache-hit != 'true'
         run: |
           cd HISE
           git submodule update --init --recursive
@@ -105,9 +107,9 @@ jobs:
           git checkout ${{ inputs.juce-branch }}
 
       - name: Replace HISE autobuild scripts with eshurl
+        if: steps.cache-hise.outputs.cache-hit != 'true'
         run: |
           cp -R eshurl/tools/auto_build/* HISE/tools/auto_build/
-          cp -R eshurl/scripts/* HISE/scripts/
 
       - name: Build HISE
         if: steps.cache-hise.outputs.cache-hit != 'true'
@@ -132,7 +134,7 @@ jobs:
       - name: Build Plugin
         run: |
           # Copy scripts to root and run
-          cp ./HISE/scripts/* .
+          cp -R eshurl/scripts/* .
           sh ./build.sh
 
       # TODO: Create a release on the repo and upload files there
