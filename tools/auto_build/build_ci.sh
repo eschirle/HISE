@@ -32,7 +32,7 @@ chmod +x "JUCE/projucer/Projucer.app/Contents/MacOS/Projucer"
 
 echo "Compiling Standalone App..."
 
-set -o pipefail && xcodebuild -project "$standalone_folder/Builds/MacOSX/HISE Standalone.xcodeproj" -configuration "$BUILD_CONFIG" -jobs 4 | ./tools/Projucer/xcbeautify --renderer github-actions
+set -o pipefail && xcodebuild -project "$standalone_folder/Builds/MacOSX/HISE Standalone.xcodeproj" -configuration "$BUILD_CONFIG" -jobs 4 GCC_PREPROCESSOR_DEFINITIONS="HISE_NUM_PLUGIN_CHANNELS=8;NUM_MAX_CHANNELS=8" | ./tools/Projucer/xcbeautify --renderer github-actions
 
 #xcodebuild  | xcpretty || exit 1
 
