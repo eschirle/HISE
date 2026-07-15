@@ -571,7 +571,7 @@ private:
 	                       CS source=CS::ApiValidation)
 	{
 		ApiDiagnostic d;
-		loc.fillColumnAndLines(d.col, d.line);
+		loc.fillColumnAndLines(d.col, d.line, d.charIndex);
 		d.fileName = loc.externalFile;
 		d.message = message;
 		d.suggestions = suggestions;
@@ -2336,16 +2336,6 @@ private:
 	{
 		const Identifier constId = parseIdentifier();
 		const int index = getConstIndex(constId, ns);
-
-#if 0
-		if (currentType == TokenTypes::dot)
-		{
-			match(TokenTypes::dot);
-			const Identifier memberName = parseIdentifier();
-
-			return parseConstObjectApiCall(constId, memberName, ns);
-		}
-#endif
 
 		ns = (ns != nullptr) ? ns : hiseSpecialData;
 
