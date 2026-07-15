@@ -2417,6 +2417,38 @@ private:
 		return e.release();
 	}
 
+	Expression* parseQualifiedNamespaceExpression(JavascriptNamespace* ns)
+	{
+		jassert(ns != nullptr);
+
+		match(TokenTypes::identifier);
+		match(TokenTypes::dot);
+
+		auto childId = Identifier(currentValue.toString());
+
+		if (auto obj = getInlineFunction(childId, ns))
+		{
+			return parseSuffixes(parseInlineFunctionCall(obj));
+		}
+
+		auto constIndex = ns->constObjects.indexOf(childId);
+
+		if (constIndex != -1)
+			return parseSuffixes(parseConstExpression(ns));
+
+		auto& vr = ns->varRegister;
+
+		const int registerIndex = vr.getRegisterIndex(childId);
+
+		if (registerIndex != -1)
+		{
+			auto type = vr.getRegisterVarType(registerIndex);
+			return parseSuffixes(new RegisterName(location, parseIdentifier(), &vr, registerIndex, getRegisterData(registerIndex, ns), type));
+		}
+
+		return parseFactor(nullptr);
+	}
+
 	Expression* parseFactor(JavascriptNamespace* ns=nullptr)
 	{
 		if (currentType == TokenTypes::identifier)
@@ -2430,11 +2462,7 @@ private:
 
 				// Allow usage of namespace prefix within namespace
 				if (ns->id == id)
-				{
-					match(TokenTypes::identifier);
-					match(TokenTypes::dot);
-					id = currentValue.toString();
-				}
+					return parseQualifiedNamespaceExpression(ns);
 			}
 
 			LoopStatement* iteratorLoop = nullptr;
@@ -2522,10 +2550,7 @@ private:
 
 			if (namespaceForId != nullptr)
 			{
-				match(TokenTypes::identifier);
-				match(TokenTypes::dot);
-				
-				return parseFactor(namespaceForId);
+				return parseQualifiedNamespaceExpression(namespaceForId);
 			}
 			else
 			{
