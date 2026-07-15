@@ -1169,10 +1169,13 @@ private:
 
 	Statement* parseVar()
 	{
-#if 0
-		if (getCurrentNamespace() != hiseSpecialData)
+
+#if USE_BACKEND
+		if (isDiagnosticMode() && getCurrentNamespace() != hiseSpecialData)
 		{
-			location.throwError("No var definitions inside namespaces (use reg or const var instead)");
+			String msg;
+			msg << "var declarations within a namespace will leak to the global namespace.";
+			recordDiagnostic(location, msg, { "reg", "const" }, SV::Warning, CS::Language);
 		}
 #endif
 
@@ -1516,9 +1519,25 @@ private:
 			return parseCallback();
 		}
 
-		var fn = parseFunctionDefinition(name);
+		auto ns = getCurrentNamespace();
 
-		
+		if (ns != hiseSpecialData && ns != nullptr)
+		{
+#if USE_BACKEND
+			if (isDiagnosticMode())
+			{
+				String msg;
+				msg << "Standard JS functions parsed in a namespace will leak into the global scope";
+
+				String f1 = "inline function " + currentValue.toString() + "()";
+				String f2 = "const var " + currentValue.toString() + " = function()";
+
+				recordDiagnostic(location, msg, { f1, f2 }, ApiClass::DiagnosticResult::Severity::Warning, CS::Language);
+			}
+#endif
+		}
+
+		var fn = parseFunctionDefinition(name);
 
 		// Recovery site #8: Anonymous function at statement level
 		if (name.isNull())
@@ -2945,8 +2964,15 @@ void HiseJavascriptEngine::RootObject::ExpressionTreeBuilder::preprocessCode(con
 			{
 				// Duplicate namespace — merge into existing and warn
 				cns = hiseSpecialData->getNamespace(namespaceId);
-				debugToConsole(dynamic_cast<Processor*>(hiseSpecialData->processor),
-					"Warning: Duplicate namespace '" + namespaceId.toString() + "' — merging contents");
+
+#if USE_BACKEND
+				// shadow parsing will not rebuild the namespace list so this warning is just noise...
+				if (!isDiagnosticMode())
+				{
+					debugToConsole(dynamic_cast<Processor*>(hiseSpecialData->processor),
+						"Warning: Duplicate namespace '" + namespaceId.toString() + "' — merging contents");
+				}
+#endif
 				continue;
 			}
 		}
