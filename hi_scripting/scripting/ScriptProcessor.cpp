@@ -1640,6 +1640,9 @@ void JavascriptProcessor::shadowParseFile(const String& code, const String& file
 		return;
 	}
 
+	// prevent the last compilation from spamming the console.
+	lastResult = Result::ok();
+
 	// Async path (IDE F7): defer to scripting thread, callback on message thread.
 	auto f = [code, fileName, callback](Processor* p)
 	{

@@ -230,6 +230,7 @@ void Plotter::rebuildPath()
 
 void Plotter::mouseDown(const MouseEvent& m)
 {
+#if !HISE_NO_GUI_TOOLS
 	if (m.mods.isRightButtonDown())
 	{
 		ScopedPointer<LookAndFeel> menuLaf = HiseColourScheme::createPopupMenuLookAndFeel(mainController, this);
@@ -257,7 +258,7 @@ void Plotter::mouseDown(const MouseEvent& m)
 	{
 		stickPopup = !stickPopup;
 	}
-
+#endif
 	
 }
 
