@@ -1210,9 +1210,12 @@ void MainController::processBlockCommon(AudioSampleBuffer &buffer, MidiBuffer &m
     
     
 #if USE_BACKEND || USE_SCRIPT_COPY_PROTECTION
-	if (auto ul = dynamic_cast<ScriptUnlocker*>(getLicenseUnlocker()))
-	{
+#if HISE_USE_MOONBASE
+	if (auto ul = getLicenseUnlocker()) {
+#else
+	if (auto ul = dynamic_cast<ScriptUnlocker*>(getLicenseUnlocker())) {
 		if (ul->currentObject != nullptr && !ul->isUnlocked())
+#endif
 		{
 			getMainSynthChain()->resetAllVoices();
 			buffer.clear();
