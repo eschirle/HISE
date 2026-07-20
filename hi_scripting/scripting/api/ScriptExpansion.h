@@ -135,6 +135,12 @@ public:
 	/** Runs a few tests that catches data persistency issues. */
 	void runTest();
 
+	/** Defines which parts of the user preset is stored at which location (DAW preset, user preset, external file). */
+	void setStateManagerProperties(const var& obj);
+
+	/** Returns the IDs of all state managers that are saved / restored with the given target Id ("UserPreset", "PluginState", "External"). */
+	var getStateManagersForTarget(const String& targetId);
+
 	// ===============================================================================================
 
 	var convertToJson(const ValueTree& d);

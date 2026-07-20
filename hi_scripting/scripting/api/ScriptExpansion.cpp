@@ -61,6 +61,8 @@ struct ScriptUserPresetHandler::Wrapper
 	API_VOID_METHOD_WRAPPER_1(ScriptUserPresetHandler, setPluginParameterGroupNames);
 	API_VOID_METHOD_WRAPPER_1(ScriptUserPresetHandler, setPluginParameterSortFunction);
 	API_VOID_METHOD_WRAPPER_0(ScriptUserPresetHandler, runTest);
+	API_VOID_METHOD_WRAPPER_1(ScriptUserPresetHandler, setStateManagerProperties);
+	API_METHOD_WRAPPER_1(ScriptUserPresetHandler, getStateManagersForTarget);
 };
 
 ScriptUserPresetHandler::ScriptUserPresetHandler(ProcessorWithScriptingContent* pwsc) :
@@ -106,6 +108,8 @@ ScriptUserPresetHandler::ScriptUserPresetHandler(ProcessorWithScriptingContent* 
 	ADD_API_METHOD_1(setPluginParameterGroupNames);
 	ADD_API_METHOD_3(sendParameterGesture);
 	ADD_API_METHOD_1(setPluginParameterSortFunction);
+	ADD_API_METHOD_1(setStateManagerProperties);
+	ADD_API_METHOD_1(getStateManagersForTarget);
 }
 
 ScriptUserPresetHandler::~ScriptUserPresetHandler()
@@ -938,6 +942,21 @@ void ScriptUserPresetHandler::runTest()
 	}
 
 	debugToConsole(dynamic_cast<Processor*>(getScriptProcessor()), report);
+}
+
+void ScriptUserPresetHandler::setStateManagerProperties(const var& obj)
+{
+	auto& uph = getScriptProcessor()->getMainController_()->getUserPresetHandler();
+	auto ok = uph.setStateManagerProperties(obj);
+
+	if (ok.failed())
+		reportScriptError(ok.getErrorMessage());
+}
+
+juce::var ScriptUserPresetHandler::getStateManagersForTarget(const String& targetId)
+{
+	auto& uph = getScriptProcessor()->getMainController_()->getUserPresetHandler();
+	return uph.getStateManagersForTarget(targetId);
 }
 
 var ScriptUserPresetHandler::convertToJson(const ValueTree& d)
