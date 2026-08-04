@@ -103,7 +103,7 @@ REM Search for XML file in XmlPresetBackups folder, default to Preset.xml
 REM (HISE expects only the filename, not the directory path)
 set "plugin_project_path=Preset.xml"
 if not exist "XmlPresetBackups\Preset.xml" (
-  for /f %%F in ('dir /b "XmlPresetBackups\*.xml" 2^>nul') do (
+  for /f "delims=" %%F in ('dir /b "XmlPresetBackups\*.xml" 2^>nul') do (
     set "plugin_project_path=%%F"
     goto :xml_found
   )
@@ -155,7 +155,7 @@ echo Setting project folder
 if "%buildAAX%"=="1" (
   echo Exporting !plugin_name! AAX Plugins
   !hise_path! clean 
-  !hise_path! export_ci !plugin_project_path! %project_type% -p:AAX %buildArch%
+  !hise_path! export_ci "!plugin_project_path!" %project_type% -p:AAX %buildArch%
   if not exist "Binaries\batchCompile.bat" ( echo ERROR: batchCompile.bat not generated. & exit /b 1 )
   call "Binaries\batchCompile.bat"
 )
@@ -163,14 +163,14 @@ if "%buildAAX%"=="1" (
 if "%buildStandalone%"=="1" (
   echo Exporting !plugin_name! Standalone
   !hise_path! clean 
-  !hise_path! export_ci !plugin_project_path! -t:standalone %buildArch%
+  !hise_path! export_ci "!plugin_project_path!" -t:standalone %buildArch%
   if not exist "Binaries\batchCompile.bat" ( echo ERROR: batchCompile.bat not generated. & exit /b 1 )
   call "Binaries\batchCompile.bat"
 )
 
 echo Exporting !plugin_name! VST Plugin
 !hise_path! clean
-!hise_path! export_ci !plugin_project_path! %project_type% %plugin_format% %buildArch%
+!hise_path! export_ci "!plugin_project_path!" %project_type% %plugin_format% %buildArch%
 if not exist "Binaries\batchCompile.bat" ( echo ERROR: batchCompile.bat not generated. & exit /b 1 )
 call "Binaries\batchCompile.bat"
 
