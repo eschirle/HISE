@@ -36,21 +36,21 @@ REM set this to the plugin architecture
 set buildArch=-a:x64
 
 REM set this to the release configuration type (Release, CI, or "Minimal Build")
-set RELEASE_MODE=Release
+set "RELEASE_MODE=Release"
 
 REM Dynamically find the HISE binary based on RELEASE_MODE
 setlocal enabledelayedexpansion
 set "script_dir=%~dp0"
 set "hise_base=!script_dir!HISE\projects\standalone\Builds\VisualStudio2026\x64"
-set hise_path=
+set "hise_path="
 
-if "!RELEASE_MODE!"=="Release" (
+if /i "!RELEASE_MODE!"=="Release" (
   if exist "!hise_base!\Release\App\HISE.exe" set "hise_path=!hise_base!\Release\App\HISE.exe"
 )
-if "!RELEASE_MODE!"=="CI" (
+if /i "!RELEASE_MODE!"=="CI" (
   if exist "!hise_base!\CI\App\HISE.exe" set "hise_path=!hise_base!\CI\App\HISE.exe"
 )
-if "!RELEASE_MODE!"=="Minimal Build" (
+if /i "!RELEASE_MODE!"=="Minimal Build" (
   if exist "!hise_base!\Minimal Build\App\HISE.exe" set "hise_path=!hise_base!\Minimal Build\App\HISE.exe"
 )
 
@@ -77,19 +77,22 @@ if not defined hise_path (
 echo Found HISE binary at: !hise_path!
 
 REM set this to the plugin type (-t:instrument or -t:effect)
-set project_type=-t:instrument
+set "project_type=-t:instrument"
 
 REM set this to the architecture -p:VST3 / -p:VST2 / -p:VST23AU
-set plugin_format=-p:VST3
+set "plugin_format=-p:VST3"
 
-REM Parse the project name from project_info.xml
-for /f "delims=" %%A in ('findstr "<Name value=" project_info.xml') do (
-  for /f "tokens=2 delims=^"" %%B in ("%%A") do (
-    set plugin_name=%%B
-    goto :name_found
+REM Parse the project name from project_info.xml safely
+set "plugin_name="
+if exist "project_info.xml" (
+  for /f "tokens=2 delims=^=" %%A in ('findstr /i "<Name value=" project_info.xml') do (
+    for /f "tokens=1 delims=/> " %%B in ("%%~A") do (
+      set "plugin_name=%%~B"
+    )
   )
 )
-if not defined plugin_name set plugin_name=Dyes Tonguewuhh
+
+if not defined plugin_name set "plugin_name=Dyes Tonguewuhh"
 :name_found
 
 REM Set this to 1 if you want to build the standalone app

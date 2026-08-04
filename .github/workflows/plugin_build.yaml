@@ -315,7 +315,6 @@ jobs:
         shell: cmd
         run: |
           chdir
-          dir
           build_ci.bat "${{ env.RELEASE_MODE }}" --skip-tests-and-export
 
       - name: Checkout Current Repository
