@@ -1,6 +1,6 @@
 @echo off
 
-if "%1%"=="--help" (
+if "%~1"=="--help" (
 echo HISE Build Script Windows
 echo ================================================================================
 echo build [--help] [--noaax]
@@ -82,46 +82,48 @@ set "project_type=-t:instrument"
 REM set this to the architecture -p:VST3 / -p:VST2 / -p:VST23AU
 set "plugin_format=-p:VST3"
 
-REM Parse the project name from project_info.xml safely
+REM Parse the project name from project_info.xml safely using string substitution
 set "plugin_name="
 if exist "project_info.xml" (
-  for /f "tokens=2 delims=^=" %%A in ('findstr /i "<Name value=" project_info.xml') do (
-    for /f "tokens=1 delims=/> " %%B in ("%%~A") do (
-      set "plugin_name=%%~B"
-    )
+  for /f "tokens=2 delims==" %%A in ('findstr /i "<Name value=" project_info.xml') do (
+    set "raw_name=%%A"
+    set "raw_name=!raw_name:"=!"
+    set "raw_name=!raw_name:/>=!"
+    set "raw_name=!raw_name: >=!"
+    set "plugin_name=!raw_name!"
   )
 )
 
 if not defined plugin_name set "plugin_name=Dyes Tonguewuhh"
-:name_found
 
 REM Set this to 1 if you want to build the standalone app
 set buildStandalone=0
 
 REM Search for XML file in XmlPresetBackups folder, default to Preset.xml
-if exist "XmlPresetBackups\Preset.xml" (
-  set plugin_project_path=XmlPresetBackups/Preset.xml
-) else (
-  for /f %%F in ('dir /b XmlPresetBackups\*.xml 2^>nul') do (
-    set plugin_project_path=XmlPresetBackups/%%F
+REM (HISE expects only the filename, not the directory path)
+set "plugin_project_path=Preset.xml"
+if not exist "XmlPresetBackups\Preset.xml" (
+  for /f %%F in ('dir /b "XmlPresetBackups\*.xml" 2^>nul') do (
+    set "plugin_project_path=%%F"
     goto :xml_found
   )
-  set plugin_project_path=XmlPresetBackups/Preset.xml
 )
 :xml_found
+
+echo Using project XML: !plugin_project_path!
 
 
 REM STAGE 2: Building ==========================================================
 
 set installer_command="C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
 
-if "%1%"=="--noaax" set buildAAX=0
+if "%~1"=="--noaax" set buildAAX=0
 
 :VariableCheck
 echo Checking Environment variables
 REM  ====================================================================================
 
-if %buildAAX%==1 (
+if "%buildAAX%"=="1" (
   echo Building AAX plugins is enabled.
   echo Checking AAX Configuration before compiling
   call aaxconfig.bat
@@ -132,7 +134,7 @@ if not defined hise_path (
 )
 
 REM Don't check the installer if not required...
-if "%buildInstaller%"==0 (
+if "%buildInstaller%"=="0" (
   goto :BuildProject
 )
 
@@ -150,24 +152,27 @@ echo Setting project folder
 
 !hise_path! clean --all
 
-if %buildAAX%==1 (
-  echo Exporting %plugin_name% AAX Plugins
+if "%buildAAX%"=="1" (
+  echo Exporting !plugin_name! AAX Plugins
   !hise_path! clean 
-  !hise_path! export_ci %plugin_project_path% %project_type% -p:AAX %buildArch%
-  call Binaries/batchCompile.bat
+  !hise_path! export_ci !plugin_project_path! %project_type% -p:AAX %buildArch%
+  if not exist "Binaries\batchCompile.bat" ( echo ERROR: batchCompile.bat not generated. & exit /b 1 )
+  call "Binaries\batchCompile.bat"
 )
 
-if %buildStandalone%==1 (
-  echo Exporting %plugin_name% Standalone
+if "%buildStandalone%"=="1" (
+  echo Exporting !plugin_name! Standalone
   !hise_path! clean 
-  !hise_path! export_ci %plugin_project_path% -t:standalone %buildArch%
-  call Binaries/batchCompile.bat
+  !hise_path! export_ci !plugin_project_path! -t:standalone %buildArch%
+  if not exist "Binaries\batchCompile.bat" ( echo ERROR: batchCompile.bat not generated. & exit /b 1 )
+  call "Binaries\batchCompile.bat"
 )
 
-echo Exporting %plugin_name% VST Plugin
+echo Exporting !plugin_name! VST Plugin
 !hise_path! clean
-!hise_path! export_ci %plugin_project_path% %project_type% %plugin_format% %buildArch%
-call Binaries/batchCompile.bat
+!hise_path! export_ci !plugin_project_path! %project_type% %plugin_format% %buildArch%
+if not exist "Binaries\batchCompile.bat" ( echo ERROR: batchCompile.bat not generated. & exit /b 1 )
+call "Binaries\batchCompile.bat"
 
 :CopyFiles
 echo Copying files
@@ -177,7 +182,7 @@ REM  ===========================================================================
 echo Signing AAX plugins
 REM  ====================================================================================
 
-if %buildAAX%==1 (
+if "%buildAAX%"=="1" (
   call aaxsign.bat
 )
 
@@ -185,10 +190,9 @@ if %buildAAX%==1 (
 echo Building installer
 REM  ====================================================================================
 
-if %buildInstaller%==0 (
+if "%buildInstaller%"=="0" (
    echo Skipping Installer
    goto :EOF
 )
-
 
 :end
