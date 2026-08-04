@@ -284,6 +284,16 @@ jobs:
         run: del *.* /Q /S
         shell: cmd
 
+      - name: Cache HISE build
+        id: cache-hise
+        uses: actions/cache@v4
+        with:
+          path: HISE
+          key: ${{ runner.os }}-hise-${{ inputs.release-mode }}-${{ inputs.juce-branch }}-${{ hashFiles('HISE/tools/auto_build/build_ci.bat') }}
+          restore-keys: |
+            ${{ runner.os }}-hise-${{ inputs.release-mode }}-${{ inputs.juce-branch }}-
+            ${{ runner.os }}-hise-
+
       - name: Checkout HISE repository
         uses: actions/checkout@v6
         with:
