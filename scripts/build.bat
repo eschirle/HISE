@@ -104,7 +104,7 @@ REM (HISE expects only the filename, not the directory path)
 set "plugin_project_path=Preset.xml"
 if not exist "XmlPresetBackups\Preset.xml" (
   for /f "delims=" %%F in ('dir /b "XmlPresetBackups\*.xml" 2^>nul') do (
-    set "plugin_project_path=%%F"
+    set "plugin_project_path=XmlPresetBackups\%%F"
     goto :xml_found
   )
 )
