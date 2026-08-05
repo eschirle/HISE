@@ -3,18 +3,30 @@
 REM Parse command-line arguments
 setlocal enabledelayedexpansion
 set SKIP_TESTS_AND_EXPORT=false
+set USE_IPP=false
 set BUILD_CONFIG=CI
 
-if "%1"=="" (
-	set BUILD_CONFIG=CI
-) else (
-	set BUILD_CONFIG=%1
-)
-
 :parse_args
-if "%2"=="" goto end_parse
-if "%2"=="--skip-tests-and-export" (
+if "%~1"=="" goto end_parse
+if /I "%~1"=="--skip-tests-and-export" (
 	set SKIP_TESTS_AND_EXPORT=true
+	shift
+	goto parse_args
+)
+if /I "%~1"=="--use-ipp" (
+	set USE_IPP=true
+	shift
+	goto parse_args
+)
+if /I "%~1:~0,10%"=="--use-ipp=" (
+	set USE_IPP=%~1:~10%
+	shift
+	goto parse_args
+)
+if "%BUILD_CONFIG%"=="CI" (
+	set BUILD_CONFIG=%~1
+	shift
+	goto parse_args
 )
 shift
 goto parse_args
@@ -22,6 +34,7 @@ goto parse_args
 :end_parse
 echo Starting CI build process...
 echo Skip tests and export: %SKIP_TESTS_AND_EXPORT%
+echo Use IPP: %USE_IPP%
 echo Building with configuration: %BUILD_CONFIG%
 
 echo Working dir: %cd%
@@ -43,8 +56,18 @@ SET standalone_project="projects\standalone\Builds\VisualStudio2026\HISE Standal
 SET projucerPath="JUCE\projucer\Projucer.exe"
 SET standalone_projucer_project="projects\standalone\HISE Standalone.jucer"
 
+if /I "%USE_IPP%"=="true" (
+    :: 1. Define the path where the GitHub Actions step installed IPP
+    SET IPP_PATH="C:\Program Files (x86)\Intel\oneAPI\ipp\latest"
 
-%projucerPath% --resave %standalone_projucer_project%
+    :: 2. Set the Global Search Path in Projucer for 'ipp'
+    echo Configuring Projucer IPP path...
+    %projucerPath% --set-global-search-path windows ipp %IPP_PATH%
+
+    %projucerPath% --resave %standalone_projucer_project%
+) else (
+    echo Skipping IPP configuration and project resave because USE_IPP is not true.
+)
 
 REM ===========================================================
 REM Compiling
