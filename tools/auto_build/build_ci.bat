@@ -18,11 +18,6 @@ if /I "%~1"=="--use-ipp" (
     shift
     goto parse_args
 )
-if /I "%~1:~0,10%"=="--use-ipp=" (
-    set "USE_IPP=%~1:~10%"
-    shift
-    goto parse_args
-)
 if "%BUILD_CONFIG%"=="CI" (
     set "BUILD_CONFIG=%~1"
     shift
@@ -91,9 +86,6 @@ set "IPP_LIB=%IPP_DIR%\lib\intel64"
 set "INCLUDE=%IPP_INCLUDE%;%INCLUDE%"
 set "LIB=%IPP_LIB%;%LIB%"
 set "PATH=%IPP_DIR%\bin;%PATH%"
-
-:: 3. Set IPP macro definition
-set "CL=/DUSE_IPP=1 %CL%"
 
 "%projucerPath%" --resave "%standalone_projucer_project%"
 
