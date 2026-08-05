@@ -276,7 +276,7 @@ jobs:
     if: ${{ github.event.inputs.platform == 'both' || github.event.inputs.platform == 'windows' }}
     runs-on: windows-latest
     env:
-      RELEASE_MODE: "CI"
+      RELEASE_MODE: "RELEASE"
       JUCE_BRANCH: "juce6"
     steps:
       # TODO: Is this cleanup step needed?

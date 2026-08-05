@@ -68,75 +68,24 @@ if /I NOT "%USE_IPP%"=="true" (
 )
 
 :: 1. Define the path where the GitHub Actions step installed IPP
-set "IPP_PATH=C:\Program Files (x86)\Intel\oneAPI\ipp\latest"
+REM Download Intel IPP installer using curl
+curl -L -o "%TEMP%\intel-ipp-installer.exe" "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/b4adec02-353b-4144-aa21-f2087040f316/w_ipp_oneapi_p_2021.11.0.533.exe"
+REM Run installer
+"%TEMP%\intel-ipp-installer.exe"
+REM Wait for user to complete installation
+
+:: 1. Define the path where the GitHub Actions step installed IPP
+if exist "C:\Program Files (x86)\Intel\oneAPI\ipp\latest" (echo Intel IPP installed successfully) else (echo Intel IPP installation not found)
+SET "IPP_PATH=C:\Program Files (x86)\Intel\oneAPI\ipp\latest"
 
 :: 2. Set the Global Search Path in Projucer for 'ipp'
 echo Configuring Projucer IPP path...
 "%projucerPath%" --set-global-search-path windows ipp "%IPP_PATH%"
 
-"%projucerPath%" --resave "%plugin_projucer_project%"
-
-echo [1/4] Installing Intel IPP via pip...
-pip install ipp-static ipp-include ipp-devel
-if !errorlevel! neq 0 (
-    echo ❌ Pip installation failed! Exiting.
-    pause
-    exit /b !errorlevel!
-)
+"%projucerPath%" --resave "%standalone_projucer_project%"
 
 echo.
-echo [2/4] Querying exact pip library paths...
-for /f "delims=" %%i in ('python -c "import ipp_include; print(ipp_include.get_include().replace('\\', '\\\\'))"') do set "IPP_INCLUDE=%%i"
-for /f "delims=" %%i in ('python -c "import ipp_static; print(ipp_static.get_lib().replace('\\', '\\\\'))"') do set "IPP_STATIC=%%i"
-
-echo Found Headers: %IPP_INCLUDE%
-echo Found Libraries: %IPP_STATIC%
-
-echo.
-echo [3/4] Injecting paths and flags into .jucer XML file...
-:: Inline python to inject configurations into the XML structure securely
-python -c "
-import xml.etree.ElementTree as ET
-import os
-
-jucer_path = r'%plugin_projucer_project%'
-if not os.path.exists(jucer_path):
-    print(f'❌ Error: {jucer_path} not found!')
-    exit(1)
-
-tree = ET.parse(jucer_path)
-root = tree.getroot()
-
-# Locate the VS Exporter (VS2022, VS2019, etc.)
-for exporter in root.iter('VS2022'): # Change to VS2019 if using older VS
-    # Set Paths
-    exporter.set('headerPath', r'%IPP_INCLUDE%')
-    exporter.set('libraryPath', r'%IPP_STATIC%')
-    
-    # Inject libraries to link
-    libs = 'ippcoremt.lib\nippsmt.lib\nippvfmt.lib\nippimt.lib'
-    exporter.set('externalLibraries', libs)
-    
-    # Inject Preprocessor Define
-    existing_defs = exporter.get('extraCompilerFlags', '')
-    if 'HISE_USE_IPP=1' not in existing_defs:
-        # Also ensure HISE_USE_IPP=1 is in the preprocessor block
-        for config in exporter.findall('.//CONFIGURATION'):
-            defs = config.get('defines', '')
-            if 'HISE_USE_IPP=1' not in defs:
-                config.set('defines', (defs + ';HISE_USE_IPP=1').strip(';'))
-
-tree.write(jucer_path, encoding='utf-8', xml_declaration=True)
-print('✓ Successfully updated .jucer XML file.')
-"
-if !errorlevel! neq 0 (
-    echo ❌ XML processing failed! Exiting.
-    pause
-    exit /b !errorlevel!
-)
-
-echo.
-echo [4/4] Forcing Projucer to regenerate Visual Studio Solution files...
+echo Forcing Projucer to regenerate Visual Studio Solution files...
 "%projucerPath%" --resave "%plugin_projucer_project%"
 if !errorlevel! neq 0 (
     echo ❌ Projucer failed to resave project!
