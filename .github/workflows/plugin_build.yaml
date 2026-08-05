@@ -311,37 +311,11 @@ jobs:
           cd JUCE
           git checkout ${{ env.JUCE_BRANCH }}
 
-      # - name: install intel ipp via pip
-      #   run: pip3 install ipp-static
-
       - name: Setup MSBuild and VS Dev Environment
         uses: microsoft/setup-msbuild@v3
         with:
           #vs-prerelease: true # This did not include v145
           msbuild-architecture: x64
-
-      # Install Intel IPP
-      - name: Install Intel IPP
-        if: ${{ inputs.use-ipp == true }}
-        shell: cmd
-        run: |
-          echo Downloading Intel IPP...
-          curl -L -o "%TEMP%\intel-ipp-installer.exe" "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/9c651894-4548-491c-b69f-49e84b530c1d/intel-ipp-2022.3.1.10_offline.exe"
-          
-          echo Installing Intel IPP silently...
-          "%TEMP%\intel-ipp-installer.exe" -s -a -s --eula accept
-          echo IPP Installation complete.
-
-      - name: Verify IPP Installation Path
-        if: ${{ inputs.use-ipp == true }}
-        shell: cmd
-        run: |
-          echo Checking the base IPP directory...
-          dir "C:\Program Files (x86)\Intel\oneAPI\ipp"
-          
-          echo.
-          echo Checking inside the 'latest' folder...
-          dir "C:\Program Files (x86)\Intel\oneAPI\ipp\latest\include"
           
       - name: Build HISE CI
         working-directory: ${{ github.workspace }}/HISE/tools/auto_build/
