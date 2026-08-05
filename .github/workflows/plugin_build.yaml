@@ -316,7 +316,19 @@ jobs:
         with:
           #vs-prerelease: true # This did not include v145
           msbuild-architecture: x64
-          
+
+      - name: Install Intel IPP (if requested)
+        if: ${{ inputs.use-ipp == true }}
+        shell: cmd
+        run: |
+          curl -L -o "%TEMP%\intel-ipp-installer.exe" "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/b4adec02-353b-4144-aa21-f2087040f316/w_ipp_oneapi_p_2021.11.0.533.exe"
+          "%TEMP%\intel-ipp-installer.exe" --silent --eula accept
+          if not exist "C:\Program Files (x86)\Intel\oneAPI\ipp\latest" (
+            echo Intel IPP installation not found
+            exit /b 1
+          )
+          echo Intel IPP installed successfully
+
       - name: Build HISE CI
         working-directory: ${{ github.workspace }}/HISE/tools/auto_build/
         shell: cmd

@@ -67,18 +67,16 @@ if /I NOT "%USE_IPP%"=="true" (
     goto skip_ipp
 )
 
-:: 1. Define the path where the GitHub Actions step installed IPP
-REM Download Intel IPP installer using curl
-curl -L -o "%TEMP%\intel-ipp-installer.exe" "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/b4adec02-353b-4144-aa21-f2087040f316/w_ipp_oneapi_p_2021.11.0.533.exe"
-REM Run installer
-"%TEMP%\intel-ipp-installer.exe"
-REM Wait for user to complete installation
-
-:: 1. Define the path where the GitHub Actions step installed IPP
-if exist "C:\Program Files (x86)\Intel\oneAPI\ipp\latest" (echo Intel IPP installed successfully) else (echo Intel IPP installation not found)
+:: IPP is installed by the GitHub Actions workflow step before this script runs.
+if exist "C:\Program Files (x86)\Intel\oneAPI\ipp\latest" (
+    echo Intel IPP installed successfully
+) else (
+    echo Intel IPP installation not found
+    exit /b 1
+)
 SET "IPP_PATH=C:\Program Files (x86)\Intel\oneAPI\ipp\latest"
 
-:: 2. Set the Global Search Path in Projucer for 'ipp'
+:: Set the Global Search Path in Projucer for 'ipp'
 echo Configuring Projucer IPP path...
 "%projucerPath%" --set-global-search-path windows ipp "%IPP_PATH%"
 
