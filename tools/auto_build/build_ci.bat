@@ -78,7 +78,22 @@ SET "IPP_PATH=C:\Program Files (x86)\Intel\oneAPI\ipp\latest"
 
 :: Set the Global Search Path in Projucer for 'ipp'
 echo Configuring Projucer IPP path...
-"%projucerPath%" --set-global-search-path windows ipp "%IPP_PATH%"
+
+:: Initialize Intel oneAPI environment variables
+call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
+
+:: 1. Define Intel oneAPI IPP Paths
+set "IPP_DIR=C:\Program Files (x86)\Intel\oneAPI\ipp\latest"
+set "IPP_INCLUDE=%IPP_DIR%\include"
+set "IPP_LIB=%IPP_DIR%\lib\intel64"
+
+:: 2. Append IPP paths to standard MSVC environment variables
+set "INCLUDE=%IPP_INCLUDE%;%INCLUDE%"
+set "LIB=%IPP_LIB%;%LIB%"
+set "PATH=%IPP_DIR%\bin;%PATH%"
+
+:: 3. Set IPP macro definition
+set "CL=/DUSE_IPP=1 %CL%"
 
 "%projucerPath%" --resave "%standalone_projucer_project%"
 
