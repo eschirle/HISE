@@ -121,7 +121,7 @@ echo OK
 
 echo Compiling 64bit Standalone App...
 
-"!MSBUILD_EXE!" "%standalone_project%" /t:Build /m:2 /p:"Configuration=%BUILD_CONFIG%;Platform=x64;PreferredToolArchitecture=x64;PlatformToolset=v143;CL_MPCount=2" /v:m
+"!MSBUILD_EXE!" "%standalone_project%" /t:Build /m:2 /p:Configuration=%BUILD_CONFIG%;Platform=x64;PreferredToolArchitecture=x64;PlatformToolset=v143;CL_MPCount=2 /v:m
 
 if !errorlevel! NEQ 0 (
     echo ========================================================================
