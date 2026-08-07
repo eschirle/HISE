@@ -54,12 +54,15 @@ jobs:
           path: HISE
 
       - name: Build
-        working-directory: ${{ github.workspace }}/HISE/
+        working-directory: ${{ github.workspace }}/HISE/tools/auto_build
         shell: cmd
         run: |
-          call tools\auto_build\ConfigWindows.bat
+          call ConfigWindows.bat
 
           echo Extracting 3rd party SDKs...
+
+          cd ..
+          cd ..
 
           if not exist "tools\SDK\sdk.zip" (
             echo ========================================================================
