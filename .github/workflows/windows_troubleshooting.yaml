@@ -8,10 +8,10 @@ jobs:
   windows_troubleshooting:
     runs-on: windows-latest
     steps:
-      # - name: Cleanup working directory
-      #   working-directory: ${{ github.workspace }}
-      #   run: del *.* /Q /S
-      #   shell: cmd
+      - name: Cleanup working directory
+        working-directory: ${{ github.workspace }}
+        run: del *.* /Q /S
+        shell: cmd
       
       - name: Setup MSBuild and VS Dev environment
         uses: microsoft/setup-msbuild@v3
@@ -62,25 +62,33 @@ jobs:
         working-directory: ${{ github.workspace }}/HISE/
         shell: cmd
         run: |
-          git describe --abbrev=0 > tmpFile
-          SET /p versionPoint= < tmpFile
-          del tmpFile
+          echo Extracting 3rd party SDKs...
+
+          if not exist "tools\SDK\sdk.zip" (
+            echo ========================================================================
+            echo tools\SDK\sdk.zip not found. Aborting...
+            cd tools\auto_build
+            exit 1
+          )
 
           cd tools/SDK
+
           tar -xf sdk.zip
+
+          if %errorlevel% NEQ 0 (
+            echo ========================================================================
+            echo Error at extracting sdk.zip. Aborting...
+            cd ..\..\tools\auto_build
+            exit 1
+          )
+
           cd ..
           cd ..
-          echo 
 
-          echo Setting version number %versionPoint%
+          echo OK
 
-          %projucerPath% --set-version %versionPoint% %standalone_projucer_project%
-          %projucerPath% --set-version %versionPoint% %plugin_projucer_project%
-          %projucerPath% --set-version %versionPoint% %multipagecreator_projucer_project%
 
           %projucerPath% --resave %standalone_projucer_project%
-          %projucerPath% --resave %plugin_projucer_project%
-          %projucerPath% --resave %multipagecreator_projucer_project%
 
           REM ===========================================================
           REM Compiling
@@ -88,7 +96,6 @@ jobs:
           echo Compiling 64bit VST Plugins
 
           set Platform=X64
-          set PreferredToolArchitecture=x64
 
           echo Compiling Stereo Version...
 
@@ -96,7 +103,6 @@ jobs:
             echo ========================================================================
             echo Error at compiling. Aborting...
             cd tools\auto_build
-            pause
             exit 1
           )
 
@@ -104,5 +110,68 @@ jobs:
 
           echo Compiling 64bit Standalone App...
 
-          "C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Current\Bin\MsBuild.exe"  %standalone_project% /t:Build /p:Configuration="Release";Platform=x64 /v:m
+          "C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Current\Bin\amd64\MSBuild.exe" %standalone_project% /t:Build /p:Configuration="RELEASE";Platform=x64 /v:m
+
+          if %errorlevel% NEQ 0 (
+            echo ========================================================================
+            echo Error at compiling. Aborting...
+            cd tools\auto_build
+            exit 1
+          )
+
+          echo OK
+
+          echo Running Unit Tests...
+
+          %hise_ci% run_unit_tests
+
+          if %errorlevel% NEQ 0 (
+            echo ...
+            echo ========================================================================
+            echo Error at running unit tests. Aborting...
+            cd tools\auto_build
+            pause
+            exit 1
+          )
+
+          echo Exporting Scriptnode DLL
+
+          %hise_ci% set_project_folder "-p:%cd%/extras/demo_project/"
+          %hise_ci% compile_networks -c:Debug
+
+          if %errorlevel% NEQ 0 (
+            echo ========================================================================
+            echo Error at exporting test project. Aborting...
+            cd tools\auto_build
+            pause
+            exit 1)
+
+          call "%cd%/extras/demo_project/DspNetworks/Binaries/batchCompile.bat"
+
+          echo Exporting Demo Project...
+
+          %hise_ci% set_project_folder "-p:%cd%/extras/demo_project/"
+          %hise_ci% export_ci "XmlPresetBackups/Demo.xml" -t:instrument -p:VST2 -a:x64 -nolto
+
+          if %errorlevel% NEQ 0 (
+            echo ========================================================================
+            echo Error at exporting test project. Aborting...
+            cd tools\auto_build
+            pause
+            exit 1)
+
+
+          call "%cd%/extras/demo_project/Binaries/batchCompile.bat"
+
+          if %errorlevel% NEQ 0 (
+            echo ========================================================================
+            echo Error at compiling test project. Aborting...
+            cd tools\auto_build
+            pause
+            exit 1)
+
+          echo OK
+
+          cd tools\auto_build
+          echo OK
 
