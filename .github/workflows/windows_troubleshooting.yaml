@@ -1,0 +1,108 @@
+---
+name: Windows Troubleshooting
+
+on:
+  workflow_dispatch:
+
+jobs:
+  windows_troubleshooting:
+    runs-on: windows-latest
+    steps:
+      # - name: Cleanup working directory
+      #   working-directory: ${{ github.workspace }}
+      #   run: del *.* /Q /S
+      #   shell: cmd
+      
+      - name: Setup MSBuild and VS Dev environment
+        uses: microsoft/setup-msbuild@v3
+        with:
+          msbuild-architecture: x64
+
+      - name: Validate VS version
+        shell: cmd
+        run: |
+          "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -all -products *
+
+      - name: Validate VS
+        shell: cmd
+        run: |
+          "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -property catalog_productDisplayVersion
+
+      - name: Where MSBuild
+        shell: cmd
+        run: |
+          where msbuild
+
+      - name: Install Intel IPP
+        shell: cmd
+        run: |
+          set VS2022INSTALLDIR=C:\Program Files\Microsoft Visual Studio\18\BuildTools
+          curl -L -o "%TEMP%\intel-ipp-installer.exe" "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/b4adec02-353b-4144-aa21-f2087040f316/w_ipp_oneapi_p_2021.11.0.533.exe"
+          "%TEMP%\intel-ipp-installer.exe" --silent --eula accept
+          if not exist "C:\Program Files (x86)\Intel\oneAPI\ipp\latest" (
+            echo Intel IPP installation not found
+            exit /b 1
+          )
+          echo Intel IPP installed successfully
+
+      - name: Checkout HISE repo
+        uses: actions/checkout@v6
+        with:
+          repository: christophhart/HISE
+          ref: develop
+          submodules: false
+          path: HISE
+      
+      - name: Config Windows
+        working-directory: ${{ github.workspace }}/HISE/tools/auto_build/
+        run: ConfigWindows.bat
+        shell: cmd
+
+      - name: Build
+        working-directory: ${{ github.workspace }}/HISE/
+        shell: cmd
+        run: |
+          git describe --abbrev=0 > tmpFile
+          SET /p versionPoint= < tmpFile
+          del tmpFile
+
+          cd tools/SDK
+          tar -xf sdk.zip
+          cd ..
+          cd ..
+          echo 
+
+          echo Setting version number %versionPoint%
+
+          %projucerPath% --set-version %versionPoint% %standalone_projucer_project%
+          %projucerPath% --set-version %versionPoint% %plugin_projucer_project%
+          %projucerPath% --set-version %versionPoint% %multipagecreator_projucer_project%
+
+          %projucerPath% --resave %standalone_projucer_project%
+          %projucerPath% --resave %plugin_projucer_project%
+          %projucerPath% --resave %multipagecreator_projucer_project%
+
+          REM ===========================================================
+          REM Compiling
+
+          echo Compiling 64bit VST Plugins
+
+          set Platform=X64
+          set PreferredToolArchitecture=x64
+
+          echo Compiling Stereo Version...
+
+          if %errorlevel% NEQ 0 (
+            echo ========================================================================
+            echo Error at compiling. Aborting...
+            cd tools\auto_build
+            pause
+            exit 1
+          )
+
+          echo OK
+
+          echo Compiling 64bit Standalone App...
+
+          "C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Current\Bin\MsBuild.exe"  %standalone_project% /t:Build /p:Configuration="Release";Platform=x64 /v:m
+
