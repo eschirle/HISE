@@ -16,12 +16,12 @@ jobs:
       - name: Validate VS version
         shell: cmd
         run: |
-          C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe -all -products *
+          "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -all -products *
 
       - name: Validate VS
         shell: cmd
         run: |
-          C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe -property catalog_productDisplayVersion
+          "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -property catalog_productDisplayVersion
 
       - name: Install Intel IPP
         shell: cmd
