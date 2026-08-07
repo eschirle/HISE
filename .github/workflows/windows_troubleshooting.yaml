@@ -83,7 +83,7 @@ jobs:
         shell: cmd
         # Copies the build_ci.bat script from the eschirle/HISE/tools/auto_build to HISE/tools/auto_build directory, overwriting the existing file.
         run: |
-          copy /Y "%cd%\..\..\eschirle\HISE\tools\auto_build\build_ci.bat" "%cd%\build_ci.bat"
+          copy /Y "${{ github.workspace }}\eschirle\HISE\tools\auto_build\build_ci.bat" "${{ github.workspace }}\HISE\tools\auto_build\build_ci.bat"
 
       - name: Build
         working-directory: ${{ github.workspace }}/HISE/tools/auto_build/
