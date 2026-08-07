@@ -269,8 +269,6 @@ jobs:
             ${{ needs.pre-build.outputs.project-name }}-macos.zip
 
 
-
-  # TODO: Fix Windows build - currently failing due to UseIPP flag mismatch
   build-windows:
     needs: pre-build
     if: ${{ github.event.inputs.platform == 'both' || github.event.inputs.platform == 'windows' }}
@@ -280,25 +278,43 @@ jobs:
       JUCE_BRANCH: "juce6"
     steps:
       # TODO: Is this cleanup step needed?
-      - name: Cleanup working dir (?)
+      - name: Cleanup working directory
+        working-directory: ${{ github.workspace }}
         run: del *.* /Q /S
         shell: cmd
+      
+      - name: Setup MSBuild and VS Dev environment
+        uses: microsoft/setup-msbuild@v3
+        with:
+          msbuild-architecture: x64
+
+      - name: Install Intel IPP
+        shell: cmd
+        run: |
+          set VS2022INSTALLDIR=C:\Program Files\Microsoft Visual Studio\18\BuildTools
+          curl -L -o "%TEMP%\intel-ipp-installer.exe" "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/b4adec02-353b-4144-aa21-f2087040f316/w_ipp_oneapi_p_2021.11.0.533.exe"
+          "%TEMP%\intel-ipp-installer.exe" --silent --eula accept
+          if not exist "C:\Program Files (x86)\Intel\oneAPI\ipp\latest" (
+            echo Intel IPP installation not found
+            exit /b 1
+          )
+          echo Intel IPP installed successfully
 
       - name: Cache HISE build
         id: cache-hise
         uses: actions/cache@v4
         with:
           path: HISE
-          key: ${{ runner.os }}-hise-${{ inputs.release-mode }}-${{ inputs.juce-branch }}-${{ hashFiles('HISE/tools/auto_build/build_ci.bat') }}
+          key: ${{ runner.os }}-hise-${{ env.RELEASE_MODE }}-${{ env.JUCE_BRANCH }}-${{ hashFiles('HISE/tools/auto_build/build_ci.bat') }}
           restore-keys: |
-            ${{ runner.os }}-hise-${{ inputs.release-mode }}-${{ inputs.juce-branch }}-
+            ${{ runner.os }}-hise-${{ env.RELEASE_MODE }}-${{ env.JUCE_BRANCH }}-
             ${{ runner.os }}-hise-
 
-      - name: Checkout HISE repository
+      - name: Checkout HISE repo
         uses: actions/checkout@v6
         with:
-          repository: eschirle/HISE
-          ref: 'develop'
+          repository: christophhart/HISE
+          ref: develop
           clean: true
           submodules: false
           path: HISE
@@ -309,32 +325,27 @@ jobs:
           cd HISE
           git submodule update --init --recursive
           cd JUCE
-          git checkout ${{ env.JUCE_BRANCH }}
+          git checkout juce6
 
-      - name: Setup MSBuild and VS Dev Environment
-        uses: microsoft/setup-msbuild@v3
+      - name: Checkout eshurl HISE
+        uses: actions/checkout@v6
         with:
-          #vs-prerelease: true # This did not include v145
-          msbuild-architecture: x64
+          repository: eschirle/HISE
+          ref: develop
+          path: eschirle/HISE
 
-      - name: Install Intel IPP (if requested)
-        if: ${{ inputs.use-ipp == true }}
+      - name: Copy HISE build script and overwrite
+        working-directory: ${{ github.workspace }}/HISE/tools/auto_build/
         shell: cmd
         run: |
-          curl -L -o "%TEMP%\intel-ipp-installer.exe" "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/b4adec02-353b-4144-aa21-f2087040f316/w_ipp_oneapi_p_2021.11.0.533.exe"
-          "%TEMP%\intel-ipp-installer.exe" --silent --eula accept
-          if not exist "C:\Program Files (x86)\Intel\oneAPI\ipp\latest" (
-            echo Intel IPP installation not found
-            exit /b 1
-          )
-          echo Intel IPP installed successfully
+          copy /Y "${{ github.workspace }}\eschirle\HISE\tools\auto_build\build_ci.bat" "${{ github.workspace }}\HISE\tools\auto_build\build_ci.bat"
 
-      - name: Build HISE CI
+      - name: Build
         working-directory: ${{ github.workspace }}/HISE/tools/auto_build/
         shell: cmd
         run: |
           chdir
-          build_ci.bat "${{ env.RELEASE_MODE }}" --skip-tests-and-export ${{ inputs.use-ipp == true && '--use-ipp' || '' }}
+          build_ci.bat "${{ env.RELEASE_MODE }}" ${{ inputs.use-ipp == true && '--use-ipp' || '' }}
 
       - name: Checkout Current Repository
         uses: actions/checkout@v6
@@ -349,14 +360,14 @@ jobs:
       - name: Build Plugin
         shell: cmd
         run: |
-          copy HISE\scripts\* .
+          copy eschirle\HISE\scripts\* .
           build.bat
 
       - name: Copy VST3 to root
         shell: pwsh
         run: Copy-Item -Path "${{ github.workspace }}/Binaries/Builds/Windows/build/Release/*.vst3" -Destination "${{ github.workspace }}" -Recurse -Force
 
-      - name: Upload Dyes Tonguewuhh
+      - name: Upload Plugin Artifacts
         uses: actions/upload-artifact@v7
         with:
           name: ${{ needs.pre-build.outputs.project-name }}-windows
