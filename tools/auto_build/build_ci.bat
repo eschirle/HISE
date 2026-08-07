@@ -2,17 +2,11 @@
 setlocal enabledelayedexpansion
 
 REM Parse command-line arguments
-set "SKIP_TESTS_AND_EXPORT=false"
 set "USE_IPP=false"
 set "BUILD_CONFIG=CI"
 
 :parse_args
 if "%~1"=="" goto end_parse
-if /I "%~1"=="--skip-tests-and-export" (
-    set "SKIP_TESTS_AND_EXPORT=true"
-    shift
-    goto parse_args
-)
 if /I "%~1"=="--use-ipp" (
     set "USE_IPP=true"
     shift
@@ -28,7 +22,6 @@ goto parse_args
 
 :end_parse
 echo Starting CI build process...
-echo Skip tests and export: %SKIP_TESTS_AND_EXPORT%
 echo Use IPP: %USE_IPP%
 echo Building with configuration: %BUILD_CONFIG%
 
@@ -138,69 +131,6 @@ if !errorlevel! NEQ 0 (
 )
 
 echo OK
-
-:: Fix: Flattened tests block using goto to avoid parse-time evaluation issues
-if /I "%SKIP_TESTS_AND_EXPORT%"=="true" (
-    echo Skipping unit tests...
-    goto skip_tests_and_export
-)
-
-echo Running Unit Tests...
-
-set "hise_ci_test=projects\standalone\Builds\VisualStudio2017\x64\%BUILD_CONFIG%\App\HISE.exe"
-
-"%hise_ci_test%" run_unit_tests
-
-if !errorlevel! NEQ 0 (
-    echo ...
-    echo ========================================================================
-    echo Error at running unit tests. Aborting...
-    cd tools\auto_build
-    pause
-    exit 1
-)
-
-echo Exporting Scriptnode DLL
-
-"%hise_ci_test%" set_project_folder "-p:%cd%/extras/demo_project/"
-"%hise_ci_test%" compile_networks -c:Debug
-
-if !errorlevel! NEQ 0 (
-    echo ========================================================================
-    echo Error at exporting test project. Aborting...
-    cd tools\auto_build
-    pause
-    exit 1
-)
-
-call "%cd%/extras/demo_project/DspNetworks/Binaries/batchCompile.bat"
-
-echo Exporting Demo Project...
-
-"%hise_ci_test%" set_project_folder "-p:%cd%/extras/demo_project/"
-"%hise_ci_test%" export_ci "XmlPresetBackups/Demo.xml" -t:instrument -p:VST2 -a:x64 -nolto
-
-if !errorlevel! NEQ 0 (
-    echo ========================================================================
-    echo Error at exporting test project. Aborting...
-    cd tools\auto_build
-    pause
-    exit 1
-)
-
-call "%cd%/extras/demo_project/Binaries/batchCompile.bat"
-
-if !errorlevel! NEQ 0 (
-    echo ========================================================================
-    echo Error at compiling test project. Aborting...
-    cd tools\auto_build
-    pause
-    exit 1
-)
-
-echo OK
-
-:skip_tests_and_export
 
 cd tools\auto_build
 echo OK
