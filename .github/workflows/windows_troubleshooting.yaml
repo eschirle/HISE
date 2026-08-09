@@ -85,9 +85,31 @@ jobs:
         run: |
           copy /Y "${{ github.workspace }}\eschirle\HISE\tools\auto_build\build_ci.bat" "${{ github.workspace }}\HISE\tools\auto_build\build_ci.bat"
 
-      - name: Build
+      - name: Build HISE
         working-directory: ${{ github.workspace }}/HISE/tools/auto_build/
         shell: cmd
         run: |
           chdir
           build_ci.bat "RELEASE" --use-ipp
+
+      - name: Print HISE CompilerSettings and disable IPP
+        shell: pwsh
+        run: |
+          $settingsPath = Join-Path -Path $env:APPDATA -ChildPath "HISE\compilerSettings.xml"
+          
+          if (Test-Path $settingsPath) {
+              Write-Host "Found compilerSettings.xml at: $settingsPath"
+              
+              # Print the current contents to the GitHub Actions log
+              Write-Host "--- Current File Contents ---"
+              Get-Content $settingsPath | Write-Host
+              Write-Host "-----------------------------"
+              
+              # Read the file, replace the string, and write it back
+              # The parentheses around (Get-Content) are important so the file is closed before writing back
+              (Get-Content $settingsPath) -replace '<UseIPP value="1"/>', '<UseIPP value="0"/>' | Set-Content $settingsPath
+              
+              Write-Host "Successfully updated UseIPP to 0."
+          } else {
+              Write-Host "File not found at: $settingsPath"
+          }
