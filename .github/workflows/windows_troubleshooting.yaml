@@ -18,32 +18,11 @@ jobs:
         with:
           msbuild-architecture: x64
 
-      - name: Validate VS version
-        shell: cmd
-        run: |
-          "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -all -products *
-
-      - name: Validate VS
-        shell: cmd
-        run: |
-          "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -property catalog_productDisplayVersion
-
-      - name: Where MSBuild
-        shell: cmd
-        run: |
-          where msbuild
-
       - name: Install Intel IPP
         shell: cmd
         run: |
-          set VS2022INSTALLDIR=C:\Program Files\Microsoft Visual Studio\18\BuildTools
-          curl -L -o "%TEMP%\intel-ipp-installer.exe" "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/b4adec02-353b-4144-aa21-f2087040f316/w_ipp_oneapi_p_2021.11.0.533.exe"
-          "%TEMP%\intel-ipp-installer.exe" --silent --eula accept
-          if not exist "C:\Program Files (x86)\Intel\oneAPI\ipp\latest" (
-            echo Intel IPP installation not found
-            exit /b 1
-          )
-          echo Intel IPP installed successfully
+          nuget install intelipp.static.win-x64 -Version 2026.0.0.712
+          echo Intel IPP installed
 
       - name: Cache HISE build
         id: cache-hise
@@ -113,3 +92,15 @@ jobs:
           } else {
               Write-Host "File not found at: $settingsPath"
           }
+      
+      - name: Update compiler settings with Hise Cli
+        shell: cmd
+        run: |
+          set hise_path=${{ github.workspace }}\HISE\projects\standalone\Builds\VisualStudio2026\x64\Release\App\HISE.exe
+          if exist "!hise_path!" (
+              echo Found HISE binary at: !hise_path!
+              "!hise_path!" set_hise_settings -vs:2026 -ipp:0
+          ) else (
+              echo HISE binary not found at: !hise_path!
+              exit /b 1
+          )

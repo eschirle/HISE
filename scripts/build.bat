@@ -133,6 +133,10 @@ if not defined hise_path (
   set hise_path="C:\HISE\projects\standalone\Builds\VisualStudio2026\x64\Release\App\HISE.exe"
 )
 
+:: Configure the HISE compiler settings
+echo Updating HISE Compiler Settings
+"!hise_path!" set_hise_settings -vs:2026 -ipp:0
+
 REM Don't check the installer if not required...
 if "%buildInstaller%"=="0" (
   goto :BuildProject
