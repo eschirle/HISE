@@ -79,16 +79,10 @@ jobs:
           build_ci.bat "RELEASE" --use-ipp
 
       - name: Print HISE Jucer config
-        shell: cmd
+        shell: pwsh
         run: |
-          set standalone_projucer_project=${{ github.workspace }}\HISE\projects\standalone\HISE Standalone.jucer
-          if exist "!standalone_projucer_project!" (
-              echo Found HISE Standalone.jucer at: !standalone_projucer_project!
-              type "!standalone_projucer_project!"
-          ) else (
-              echo HISE Standalone.jucer not found at: !standalone_projucer_project!
-              exit /b 1
-          )
+          dir /s /b "HISE Standalone.jucer"
+          Get-ChildItem -Path . -Recurse -Filter "HISE Standalone.jucer" -File
 
       - name: Print HISE CompilerSettings and disable IPP
         shell: pwsh
