@@ -21,8 +21,15 @@ jobs:
       - name: Install Intel IPP
         shell: cmd
         run: |
-          nuget install intelipp.static.win-x64 -Version 2026.0.0.712
-          echo Intel IPP installed
+          set VS2022INSTALLDIR=C:\Program Files\Microsoft Visual Studio\18\BuildTools
+          set VS2026INSTALLDIR=C:\Program Files\Microsoft Visual Studio\18\BuildTools
+          curl -L -o "%TEMP%\intel-ipp-installer.exe" "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/b4adec02-353b-4144-aa21-f2087040f316/w_ipp_oneapi_p_2021.11.0.533.exe"
+          "%TEMP%\intel-ipp-installer.exe" --silent --eula accept
+          if not exist "C:\Program Files (x86)\Intel\oneAPI\ipp\latest" (
+            echo Intel IPP installation not found
+            exit /b 1
+          )
+          echo Intel IPP installed successfully
 
       - name: Cache HISE build
         id: cache-hise
@@ -70,6 +77,18 @@ jobs:
         run: |
           chdir
           build_ci.bat "RELEASE" --use-ipp
+
+      - name: Print HISE Jucer config
+        shell: cmd
+        run: |
+          set standalone_projucer_project=${{ github.workspace }}\HISE\projects\standalone\HISE Standalone.jucer
+          if exist "!standalone_projucer_project!" (
+              echo Found HISE Standalone.jucer at: !standalone_projucer_project!
+              type "!standalone_projucer_project!"
+          ) else (
+              echo HISE Standalone.jucer not found at: !standalone_projucer_project!
+              exit /b 1
+          )
 
       - name: Print HISE CompilerSettings and disable IPP
         shell: pwsh
