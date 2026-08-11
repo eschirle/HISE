@@ -94,7 +94,7 @@ if !errorlevel! neq 0 (
 :: Ensure the standalone .jucer file uses the requested VS2026 IPP settings.
 if exist "%standalone_projucer_project%" (
     echo Ensuring VS2026 IPP settings in "%standalone_projucer_project%"...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "^$path = (Resolve-Path '%standalone_projucer_project%').Path; ^$text = [System.IO.File]::ReadAllText($path); ^$text = [regex]::Replace($text, '(?m)(<VS2026\\b[^>]*?)\\s+\\b(useIPP|IPPLibrary|IPP1ALibrary)="[^"]*"', '$1'); ^$text = [regex]::Replace($text, '(?m)(<VS2026\\b[^>]*?)(\\s*/?>)', '$1 useIPP=\"Sequential\" IPPLibrary=\"\" IPP1ALibrary=\"Static_Library\"$2'); [System.IO.File]::WriteAllText($path, $text)"
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "$path = (Resolve-Path '%standalone_projucer_project%').Path; $text = [System.IO.File]::ReadAllText($path); $text = [regex]::Replace($text, '(?m)(<VS2026\b[^>]*?)\s+\b(useIPP|IPPLibrary|IPP1ALibrary)="[^"]*"', '$1'); $text = [regex]::Replace($text, '(?m)(<VS2026\b[^>]*?)(\s*/?>)', '$1 useIPP="Sequential" IPPLibrary="" IPP1ALibrary="Static_Library"$2'); [System.IO.File]::WriteAllText($path, $text)"
 ) else (
     echo WARNING: "%standalone_projucer_project%" was not found, so IPP settings could not be updated.
 )
