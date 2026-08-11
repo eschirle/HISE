@@ -81,8 +81,21 @@ jobs:
       - name: Print HISE Jucer config
         shell: pwsh
         run: |
-          dir /s /b "HISE Standalone.jucer"
-          Get-ChildItem -Path . -Recurse -Filter "HISE Standalone.jucer" -File
+          $file = Get-ChildItem -Path . -Recurse -Filter "HISE Standalone.jucer" -File | Select-Object -First 1
+
+          if (-not $file) {
+            Write-Error "Could not find 'HISE Standalone.jucer'"
+            exit 1
+          }
+
+          $filePath = $file.FullName
+          Write-Host "Found Jucer file at: $filePath"
+          
+          # Print file contents to the build log
+          Get-Content -Path $filePath
+
+          # Store in GitHub Actions output variable for use in subsequent steps
+          "jucer_path=$filePath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Print HISE CompilerSettings and disable IPP
         shell: pwsh
