@@ -176,6 +176,11 @@ echo Exporting !plugin_name! VST Plugin
 !hise_path! clean
 !hise_path! export_ci "!plugin_project_path!" %project_type% %plugin_format% %buildArch%
 if not exist "Binaries\batchCompile.bat" ( echo ERROR: batchCompile.bat not generated. & exit /b 1 )
+
+:: Write the contents of batchCompile.bat to the console for debugging purposes
+echo Contents of batchCompile.bat:
+type "Binaries\batchCompile.bat"
+
 call "Binaries\batchCompile.bat"
 
 :CopyFiles
