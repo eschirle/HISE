@@ -76,7 +76,7 @@ jobs:
         shell: cmd
         run: |
           chdir
-          build_ci.bat "RELEASE" --use-ipp
+          build_ci.bat "RELEASE"
 
       - name: Print HISE Jucer config
         shell: pwsh
