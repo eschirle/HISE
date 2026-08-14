@@ -357,6 +357,11 @@ jobs:
         run: Copy-Item -Path "${{ github.workspace }}/app/*" -Destination "${{ github.workspace }}" -Recurse -Force
         shell: pwsh
 
+      - name: Link HISE expected VS to current VS
+        shell: cmd
+        run: |
+          mklink /D "C:\Program Files\Microsoft Visual Studio\18\Community" "C:\Program Files\Microsoft Visual Studio\18\Enterprise"
+
       - name: Build Plugin
         shell: cmd
         run: |
