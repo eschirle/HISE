@@ -289,6 +289,7 @@ jobs:
           msbuild-architecture: x64
 
       - name: Install Intel IPP
+        if: ${{ inputs.use-ipp == true }}
         shell: cmd
         run: |
           set VS2022INSTALLDIR=C:\Program Files\Microsoft Visual Studio\18\BuildTools
