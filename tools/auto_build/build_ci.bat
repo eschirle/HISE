@@ -2,19 +2,8 @@
 setlocal enabledelayedexpansion
 
 REM Parse command-line arguments
-set "BUILD_CONFIG=CI"
+set "BUILD_CONFIG=RELEASE"
 
-:parse_args
-
-if "%BUILD_CONFIG%"=="CI" (
-    set "BUILD_CONFIG=%~1"
-    shift
-    goto parse_args
-)
-shift
-goto parse_args
-
-:end_parse
 echo Starting CI build process...
 echo Building with configuration: %BUILD_CONFIG%
 

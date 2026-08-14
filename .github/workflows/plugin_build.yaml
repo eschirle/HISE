@@ -346,7 +346,7 @@ jobs:
         shell: cmd
         run: |
           chdir
-          build_ci.bat "${{ env.RELEASE_MODE }}" ${{ inputs.use-ipp == true && '--use-ipp' || '' }}
+          build_ci.bat
 
       - name: Checkout Current Repository
         uses: actions/checkout@v6
