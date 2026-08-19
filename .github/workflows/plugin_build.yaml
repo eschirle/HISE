@@ -1,5 +1,6 @@
 ---
 name: Build Plugin
+description: "This workflow builds HISE plugins for MacOS and Windows"
 
 on:
   workflow_call:
@@ -83,7 +84,7 @@ jobs:
         if: steps.cache-hise.outputs.cache-hit != 'true'
         uses: actions/checkout@v6
         with:
-          repository: eschirle/HISE
+          repository: christophhart/HISE
           ref: 'develop'
           clean: true
           submodules: false
@@ -97,12 +98,22 @@ jobs:
           cd JUCE
           git checkout ${{ inputs.juce-branch }}
 
+      - name: Checkout Eshurl HISE
+        uses: actions/checkout@v6
+        with:
+          repository: eschirle/HISE
+          ref: develop
+          path: eschirle/HISE
+
       - name: Build HISE
         if: steps.cache-hise.outputs.cache-hit != 'true'
         working-directory: ${{ github.workspace }}/HISE/tools/auto_build/
         run: |
           # Unzip SDK
           unzip -o ${{ github.workspace }}/HISE/tools/SDK/sdk.zip -d ${{ github.workspace }}/HISE/tools/SDK/
+
+          # Copy auto build script from eshurl repo
+          cp -f "${{ github.workspace }}/eschirle/HISE/tools/auto_build/build_ci.sh" "${{ github.workspace }}/HISE/tools/auto_build/build_ci.sh"
 
           sh ./build_ci.sh "${{ inputs.release-mode }}" --skip-tests-and-export
 
@@ -122,8 +133,6 @@ jobs:
           # Copy scripts to root and run
           cp ./HISE/scripts/* .
           sh ./build.sh
-
-      # TODO: Create a release on the repo and upload files there
       - name: Copy VST3 to root
         run: |
           cp -R Binaries/Builds/MacOSX/build/Release/*.vst3 ${{ github.workspace }}/
